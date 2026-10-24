@@ -1,5 +1,7 @@
 using EnglishTrainer.Api.Authentication;
 using EnglishTrainer.Application.Services;
+using EnglishTrainer.Domain.Enums;
+using EnglishTrainer.Domain.Exceptions;
 
 namespace EnglishTrainer.Api.Endpoints;
 
@@ -22,6 +24,29 @@ public static class StatsEndpoints
         })
         .WithSummary("Сводка прогресса")
         .WithDescription("Выучено, в работе, к повторению, серия дней и удержание за 30 дней.");
+
+        group.MapGet("/words", async (
+            string? scope,
+            HttpContext context,
+            StatsService service,
+            CancellationToken ct) =>
+        {
+            var parsed = scope switch
+            {
+                "in-progress" => WordProgressScope.InProgress,
+                "due" => WordProgressScope.Due,
+                "learned" => WordProgressScope.Learned,
+                _ => throw new ValidationException(
+                    "Неизвестный срез слов. Допустимо: in-progress, due, learned.")
+            };
+
+            var words = await service.GetWordsAsync(context.User.GetUserId(), parsed, ct);
+            return Results.Ok(words);
+        })
+        .WithSummary("Слова для страниц прогресса")
+        .WithDescription(
+            "Слова с переводом, транскрипцией и сроком повторения. " +
+            "scope: in-progress — начатые, due — пора повторить, learned — выученные.");
 
         group.MapGet("/activity", async (
             HttpContext context,

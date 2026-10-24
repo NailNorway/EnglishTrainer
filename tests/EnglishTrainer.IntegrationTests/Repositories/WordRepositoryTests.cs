@@ -37,6 +37,48 @@ public sealed class WordRepositoryTests
     }
 
     [Fact]
+    public async Task GetNewWordsForUserAsync_WithoutDeck_SearchesAllDecks()
+    {
+        await using var scope = await TestDatabase.BeginAsync();
+        var repository = new WordRepository(scope.Context);
+
+        var user = await TestData.AddUserAsync(scope.Context);
+
+        var started = await TestData.AddWordAsync(scope.Context);
+        await TestData.AddDeckAsync(scope.Context, wordIds: [started.Id]);
+
+        var fresh = await TestData.AddWordAsync(scope.Context);
+        await TestData.AddDeckAsync(scope.Context, wordIds: [fresh.Id]);
+
+        await TestData.AddCardStateAsync(
+            scope.Context, user.Id, started.Id, intervalDays: 1, dueAtUtc: DateTime.UtcNow);
+
+        // Общая тренировка не выбирает колоду: раньше она смотрела только
+        // в первую системную колоду и после её прохождения возвращала пусто.
+        var newWords = await repository.GetNewWordsForUserAsync(user.Id, null, limit: 10);
+
+        Assert.Contains(newWords, word => word.Id == fresh.Id);
+    }
+
+    [Fact]
+    public async Task GetNewWordsForUserAsync_WithoutDeck_IgnoresOtherUsersPrivateDecks()
+    {
+        await using var scope = await TestDatabase.BeginAsync();
+        var repository = new WordRepository(scope.Context);
+
+        var user = await TestData.AddUserAsync(scope.Context);
+        var other = await TestData.AddUserAsync(scope.Context);
+
+        var foreignWord = await TestData.AddWordAsync(scope.Context);
+        await TestData.AddDeckAsync(
+            scope.Context, isSystem: false, ownerId: other.Id, wordIds: [foreignWord.Id]);
+
+        var newWords = await repository.GetNewWordsForUserAsync(user.Id, null, limit: 10);
+
+        Assert.DoesNotContain(newWords, word => word.Id == foreignWord.Id);
+    }
+
+    [Fact]
     public async Task GetNewWordsForUserAsync_OrdersByFrequencyAndPutsUnknownLast()
     {
         await using var scope = await TestDatabase.BeginAsync();

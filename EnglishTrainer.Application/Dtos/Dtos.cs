@@ -104,6 +104,23 @@ public sealed record WordDetailDto(
     IReadOnlyList<WordTranslationDto> Translations,
     IReadOnlyList<WordExampleDto> Examples);
 
+/// <summary>
+/// Слово вместе с состоянием повторения — строка страниц «В работе»,
+/// «Пора повторить» и «Выучено».
+/// </summary>
+/// <param name="DueAtUtc">Когда слово снова нужно повторить.</param>
+/// <param name="IntervalDays">
+/// Текущий интервал: по нему видно, насколько слово закрепилось. Для выученных
+/// он не меньше <see cref="EnglishTrainer.Domain.Entities.CardState.LearnedIntervalDays"/>.
+/// </param>
+public sealed record WordProgressDto(
+    WordDto Word,
+    CardPhase Phase,
+    bool IsLearned,
+    double IntervalDays,
+    DateTime DueAtUtc,
+    DateTime? LastReviewedAt);
+
 /// <summary>Колода вместе с прогрессом конкретного пользователя.</summary>
 /// <param name="IsOwned">
 /// Личная колода этого пользователя: её можно дополнять и удалять. Системные

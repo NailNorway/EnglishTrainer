@@ -1,4 +1,5 @@
 using EnglishTrainer.Domain.Entities;
+using EnglishTrainer.Domain.Enums;
 
 namespace EnglishTrainer.Domain.Repositories;
 
@@ -26,11 +27,12 @@ public interface IWordRepository
         IReadOnlyCollection<int> ids, CancellationToken ct = default);
 
     /// <summary>
-    /// Слова колоды, которых у пользователя ещё нет в изучении, в порядке полезности.
+    /// Слова, которых у пользователя ещё нет в изучении, в порядке полезности.
+    /// Без колоды поиск идёт по всем колодам; с колодой — только по ней.
     /// Основа для отбора «новых» карточек в сессии.
     /// </summary>
     Task<IReadOnlyList<Word>> GetNewWordsForUserAsync(
-        int userId, int deckId, int limit, CancellationToken ct = default);
+        int userId, int? deckId, int limit, CancellationToken ct = default);
 
     /// <summary>
     /// Слова-соседи по колоде: нужны как правдоподобные неверные варианты
@@ -261,6 +263,14 @@ public interface ICardStateRepository
 
     /// <summary>Сводка по всем карточкам пользователя для страницы прогресса.</summary>
     Task<CardStateSummary> GetSummaryAsync(int userId, DateTime nowUtc, CancellationToken ct = default);
+
+    /// <summary>
+    /// Карточки для отдельной страницы слов: «в работе», «пора повторить» или
+    /// «выучено». Порядок — от ближайшего срока к дальнему; у выученных —
+    /// по времени последнего повторения.
+    /// </summary>
+    Task<IReadOnlyList<CardState>> GetProgressAsync(
+        int userId, WordProgressScope scope, DateTime nowUtc, CancellationToken ct = default);
 }
 
 /// <summary>Агрегированные показатели прогресса пользователя.</summary>

@@ -60,6 +60,24 @@ public sealed class AchievementCatalogTests
     }
 
     [Fact]
+    public void AllAchievements_HaveUniqueNonEmptyIcons()
+    {
+        // Иконка — часть различимости наград. Два одинаковых значка у разных
+        // достижений снова превращают список в ряд одинаковых медалей, ради
+        // чего и убирались общие 🏆/🔒.
+        Assert.All(AchievementCatalog.All, achievement =>
+            Assert.False(string.IsNullOrWhiteSpace(achievement.Icon)));
+
+        var duplicates = AchievementCatalog.All
+            .GroupBy(achievement => achievement.Icon, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToList();
+
+        Assert.Empty(duplicates);
+    }
+
+    [Fact]
     public void Metrics_CoverEveryMetricUsedByCatalogue()
     {
         // Список показателей нужен странице достижений: она считает сразу все.

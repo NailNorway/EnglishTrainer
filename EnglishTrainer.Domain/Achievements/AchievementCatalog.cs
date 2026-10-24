@@ -38,12 +38,17 @@ public enum AchievementMetric
 /// <param name="Code">Устойчивый код для хранения и сравнения. Менять нельзя.</param>
 /// <param name="Title">Короткое имя для плашки.</param>
 /// <param name="Description">Что нужно сделать.</param>
+/// <param name="Icon">
+/// Своя иконка достижения. Хранится строкой, чтобы каталог оставался данными,
+/// а интерфейс не разрастался отдельной таблицей соответствий «код → картинка».
+/// </param>
 /// <param name="Metric">По какому показателю измеряется.</param>
 /// <param name="Target">Порог показателя.</param>
 public sealed record AchievementDefinition(
     string Code,
     string Title,
     string Description,
+    string Icon,
     AchievementMetric Metric,
     int Target);
 
@@ -110,15 +115,21 @@ public static class AchievementCatalog
     /// </remarks>
     public static readonly IReadOnlyList<AchievementDefinition> All =
     [
-        new("first-step", "Первый шаг", "Начать первое слово", AchievementMetric.StartedWords, 1),
-        new("words-10", "Десять слов", "Выучить 10 слов", AchievementMetric.LearnedWords, 10),
-        new("streak-3", "Три дня", "Заниматься 3 дня подряд", AchievementMetric.LongestStreak, 3),
-        new("reviews-100", "Сто ответов", "Ответить на 100 карточек", AchievementMetric.TotalReviews, 100),
-        new("words-100", "Сотня", "Выучить 100 слов", AchievementMetric.LearnedWords, 100),
-        new("streak-7", "Неделя без пропусков", "Заниматься 7 дней подряд", AchievementMetric.LongestStreak, 7),
-        new("deck-master", "Колода пройдена", "Выучить все слова колоды", AchievementMetric.CompletedDecks, 1),
-        new("reviews-1000", "Тысяча ответов", "Ответить на 1000 карточек", AchievementMetric.TotalReviews, 1000),
-        new("streak-30", "Месяц занятий", "Заниматься 30 дней подряд", AchievementMetric.LongestStreak, 30)
+        new("first-step", "Первый шаг", "Начать первое слово", "🎓", AchievementMetric.StartedWords, 1),
+        new("words-10", "Десять слов", "Выучить 10 слов", "🔟", AchievementMetric.LearnedWords, 10),
+        new("streak-3", "Три дня", "Заниматься 3 дня подряд", "🔥", AchievementMetric.LongestStreak, 3),
+        new("reviews-100", "Сто ответов", "Ответить на 100 карточек", "💯", AchievementMetric.TotalReviews, 100),
+        new("started-50", "Пятьдесят слов", "Начать 50 слов", "🌱", AchievementMetric.StartedWords, 50),
+        new("words-100", "Сотня", "Выучить 100 слов", "🏅", AchievementMetric.LearnedWords, 100),
+        new("streak-7", "Неделя без пропусков", "Заниматься 7 дней подряд", "📅", AchievementMetric.LongestStreak, 7),
+        new("reviews-500", "Пятьсот ответов", "Ответить на 500 карточек", "🎯", AchievementMetric.TotalReviews, 500),
+        new("deck-master", "Колода пройдена", "Выучить все слова колоды", "📚", AchievementMetric.CompletedDecks, 1),
+        new("streak-14", "Две недели", "Заниматься 14 дней подряд", "🌟", AchievementMetric.LongestStreak, 14),
+        new("words-250", "Двести пятьдесят слов", "Выучить 250 слов", "🚀", AchievementMetric.LearnedWords, 250),
+        new("reviews-1000", "Тысяча ответов", "Ответить на 1000 карточек", "🏆", AchievementMetric.TotalReviews, 1000),
+        new("decks-3", "Три колоды", "Выучить целиком три колоды", "👑", AchievementMetric.CompletedDecks, 3),
+        new("streak-30", "Месяц занятий", "Заниматься 30 дней подряд", "🗓️", AchievementMetric.LongestStreak, 30),
+        new("reviews-5000", "Пять тысяч ответов", "Ответить на 5000 карточек", "💎", AchievementMetric.TotalReviews, 5000)
     ];
 
     /// <summary>Показатели, которые вообще встречаются в каталоге.</summary>

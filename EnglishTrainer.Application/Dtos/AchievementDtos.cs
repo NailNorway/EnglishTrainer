@@ -13,6 +13,7 @@ public sealed record AchievementDto(
     string Code,
     string Title,
     string Description,
+    string Icon,
     int Target,
     int Progress,
     bool Unlocked,
