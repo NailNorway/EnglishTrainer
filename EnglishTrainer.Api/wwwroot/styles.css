@@ -407,6 +407,15 @@ input:focus, select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rg
     border-left: 3px solid var(--brand);
 }
 
+/*
+ * Ближайшая цель — отдельная карточка, а не первая плитка сетки. Без отступа
+ * её нижняя граница визуально прилипает к первому ряду достижений, и кажется,
+ * что это один общий блок. Отделяем её тем же ритмом, что и остальные секции.
+ */
+.goal + .achievement-grid {
+    margin-top: 18px;
+}
+
 .goal__head { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
 .goal__head .hint { margin-top: 2px; }
 .goal__mark { font-size: 22px; line-height: 1.2; }
