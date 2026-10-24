@@ -8,7 +8,7 @@
 
 import { api } from '../api.js';
 import {
-    esc, icon, humanInterval, formatDate, phaseBadge
+    esc, icon, humanInterval, formatDate
 } from '../ui.js';
 import { canSpeak, speak } from '../speech.js';
 import { startSession } from './study.js';
@@ -68,7 +68,7 @@ export async function render(container, context) {
 
             ${items.length
                 ? `<div class="word-list word-list--progress">
-                       ${items.map((item) => wordRow(item, meta)).join('')}
+                       ${items.map((item) => wordRow(item)).join('')}
                    </div>`
                 : `<div class="card"><p class="hint" style="margin: 0">
                        ${scope === 'due'
@@ -87,7 +87,7 @@ export async function render(container, context) {
         }
 
         bindSpeakButtons(container);
-        bindWordRows(container);
+        bindWordRows(container, items, meta);
     } catch (error) {
         container.innerHTML = `
             <div class="card">
@@ -105,15 +105,14 @@ function scopeFromHash() {
     return part || 'in-progress';
 }
 
-function wordRow(item, meta) {
+function wordRow(item) {
     const word = item.word;
     const translation = word.translations
         ?.map((entry) => entry.text)
         .filter(Boolean)
         .join(', ') ?? '';
-
-    const transcription = [word.ipaUk, word.ipaUs].filter(Boolean).join(' · ');
-    const due = meta.showDue ? dueBadge(item.dueAtUtc) : '';
+    const level = levelName(word.level);
+    const isNew = item.phase === 0;
 
     return `
         <article class="word-row word-row--clickable" data-word-id="${word.id}"
@@ -121,16 +120,20 @@ function wordRow(item, meta) {
             <div class="word-row__main">
                 <div class="word-row__lemma-line">
                     <span class="word-row__lemma">${esc(word.lemma)}</span>
-                    ${transcription ? `<span class="word-row__ipa">${esc(transcription)}</span>` : ''}
                 </div>
                 <div class="word-row__translation">${esc(translation)}</div>
             </div>
             <div class="word-row__side">
-                ${phaseBadge(item.phase, item.isLearned)}
-                ${due}
+                ${isNew ? '<span class="badge badge--new">новое</span>' : ''}
+                ${level ? `<span class="badge">${esc(level)}</span>` : ''}
                 ${speakButton(word.lemma)}
             </div>
         </article>`;
+}
+
+function levelName(level) {
+    // CefrLevel на сервере — перечисление, в JSON приходит числом.
+    return ['—', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'][level] ?? '';
 }
 
 function dueBadge(value) {
@@ -170,20 +173,28 @@ function bindSpeakButtons(root) {
     });
 }
 
-function bindWordRows(container) {
+function bindWordRows(container, items, meta) {
+    const byId = new Map(items.map((item) => [String(item.word.id), item]));
+
     container.querySelectorAll('[data-word-id]').forEach((row) => {
+        const item = byId.get(row.dataset.wordId);
+
+        if (!item) {
+            return;
+        }
+
         row.addEventListener('click', (event) => {
             if (event.target.closest('button')) {
                 return;
             }
 
-            void openWord(Number(row.dataset.wordId));
+            void openWord(item, meta);
         });
 
         row.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
-                void openWord(Number(row.dataset.wordId));
+                void openWord(item, meta);
             }
         });
     });
@@ -211,7 +222,7 @@ function bindWordDialog() {
     });
 }
 
-async function openWord(wordId) {
+async function openWord(item, meta) {
     const dialog = document.getElementById('word-dialog');
     const content = document.getElementById('word-dialog-content');
 
@@ -226,8 +237,11 @@ async function openWord(wordId) {
     }
 
     try {
-        const word = await api(`/api/words/${wordId}`);
+        const word = await api(`/api/words/${item.word.id}`);
         const transcription = [word.ipaUk, word.ipaUs].filter(Boolean).join(' · ');
+        const level = levelName(word.level);
+        const isNew = item.phase === 0;
+        const due = meta.showDue ? dueBadge(item.dueAtUtc) : '';
 
         content.innerHTML = `
             <div class="word-dialog__head">
@@ -236,6 +250,12 @@ async function openWord(wordId) {
                     ${transcription ? `<p class="word-dialog__ipa">${esc(transcription)}</p>` : ''}
                 </div>
                 ${speakButton(word.lemma)}
+            </div>
+
+            <div class="word-dialog__meta">
+                ${isNew ? '<span class="badge badge--new">новое</span>' : ''}
+                ${level ? `<span class="badge">${esc(level)}</span>` : ''}
+                ${due}
             </div>
 
             <div class="word-dialog__translations">
