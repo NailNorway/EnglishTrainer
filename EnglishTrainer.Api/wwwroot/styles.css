@@ -215,6 +215,17 @@ a:hover { text-decoration: underline; }
     padding: 0 8px 22px;
 }
 
+/* Логотип в боковом меню — ссылка на тренировку, а не просто подпись. */
+a.brand {
+    display: block;
+    text-decoration: none;
+    border-radius: var(--r-sm);
+    transition: color .15s ease, opacity .15s ease;
+}
+
+a.brand:hover { color: #dfe7ff; }
+a.brand:focus-visible { outline: 2px solid #8ea6ff; outline-offset: 3px; }
+
 .brand span { color: #8ea6ff; }
 .brand--lg { font-size: 22px; color: var(--ink); padding: 0; }
 .brand--lg span { color: var(--brand); }
