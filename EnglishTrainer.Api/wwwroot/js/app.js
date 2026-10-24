@@ -1037,8 +1037,11 @@ async function route() {
         return;
     }
 
-    // История обновлений доступна до входа: на неё ведёт ссылка с главной.
-    if (!getToken() && isUpdatesHash()) {
+    // История обновлений открывается с главной и без входа, и с уже
+    // авторизованным профилем: главная — отдельный экран, оболочка приложения
+    // в этот момент ещё скрыта. Внутри приложения этот же хеш обрабатывается
+    // обычным роутером ниже.
+    if (isUpdatesHash() && elements.app.hidden) {
         await showPublicUpdates();
         return;
     }
@@ -1047,7 +1050,7 @@ async function route() {
     // экране входа втихую готовила бы страницу в скрытом контейнере.
     if (elements.app.hidden) {
         // Возврат с публичной истории обновлений по кнопке «назад» в браузере.
-        if (!getToken() && (!location.hash || location.hash === '#/')) {
+        if (!location.hash || location.hash === '#/') {
             showHome();
         }
         return;
