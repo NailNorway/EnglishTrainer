@@ -60,7 +60,7 @@ public sealed class StudySessionService(
     /// которая всё равно восстанавливается из состояний карточек.
     /// </remarks>
     public async Task<StudySessionDto> GetOrCreateSessionAsync(
-        int userId, int? deckId, bool cram = false, CancellationToken ct = default)
+        int userId, int? deckId, bool cram = false, bool onlyDue = false, CancellationToken ct = default)
     {
         var user = await users.GetWithSettingsAsync(userId, ct)
             ?? throw NotFoundException.For("Пользователь", userId);
@@ -83,11 +83,11 @@ public sealed class StudySessionService(
             await unitOfWork.SaveChangesAsync(ct);
         }
 
-        return await CreateSessionAsync(user, deckId, cram, ct);
+        return await CreateSessionAsync(user, deckId, cram, onlyDue, ct);
     }
 
     private async Task<StudySessionDto> CreateSessionAsync(
-        User user, int? deckId, bool cram, CancellationToken ct)
+        User user, int? deckId, bool cram, bool onlyDue, CancellationToken ct)
     {
         var userId = user.Id;
         var settings = user.Settings ?? new UserSettings();
@@ -147,10 +147,10 @@ public sealed class StudySessionService(
             });
         }
 
-        // 2. Новые слова в пределах дневного лимита. Вне расписания они не подмешиваются:
-        // дополнительная тренировка не должна расходовать дневной лимит, иначе
-        // «позанимаюсь ещё» съедало бы программу на завтра.
-        IReadOnlyList<Word> newWords = cram
+        // 2. Новые слова в пределах дневного лимита. Вне расписания и на странице
+        // «Пора повторить» они не подмешиваются: это отдельные намерения, и они
+        // не должны расходовать дневной лимит.
+        IReadOnlyList<Word> newWords = cram || onlyDue
             ? []
             : await SelectNewWordsAsync(user, settings, localDate, deckId, ct);
 
@@ -328,6 +328,11 @@ public sealed class StudySessionService(
     /// «на сегодня всё» после первого же прогона выглядел бы поломкой. Введённые
     /// слова при этом честно попадают в дневную статистику, поэтому обычная
     /// тренировка в тот же день новых слов уже не предложит.
+    ///
+    /// Без выбранной колоды слова берутся из всех колод, а не только из первой
+    /// системной. Раньше общая тренировка замыкалась на «Первых днях»: после
+    /// прохождения этой колоды новые слова переставали приходить, хотя в других
+    /// колодах их было ещё много.
     /// </remarks>
     private async Task<IReadOnlyList<Word>> SelectNewWordsAsync(
         User user, UserSettings settings, DateOnly localDate, int? deckId, CancellationToken ct)
@@ -344,25 +349,13 @@ public sealed class StudySessionService(
         if (!chosenDeck && remaining <= 0)
             return [];
 
-        // Если колода не выбрана, берём слова из самой приоритетной системной колоды:
-        // «первые дни» логичнее учить раньше, чем лексику для собеседования.
-        var targetDeckId = deckId;
-        if (targetDeckId is null)
-        {
-            var allDecks = await decks.GetSystemAsync(ct);
-            targetDeckId = allDecks.OrderBy(d => d.SortOrder).FirstOrDefault()?.Id;
-        }
-
-        if (targetDeckId is null)
-            return [];
-
         // У выбранной колоды остаток лимита не спрашивается, но и целая колода
         // за один заход не выдаётся: за раз вводится обычная дневная норма новых
         // слов. Иначе выбор темы превращался бы в «получить все её слова сразу» —
         // ровно то выгорание, от которого лимит и защищает.
         var limit = chosenDeck ? settings.NewWordsPerDay : remaining;
 
-        var candidates = await words.GetNewWordsForUserAsync(user.Id, targetDeckId.Value, limit, ct);
+        var candidates = await words.GetNewWordsForUserAsync(user.Id, deckId, limit, ct);
 
         var stat = todayStat ?? new DailyStat { UserId = user.Id, Date = localDate };
         stat.NewWordsStarted += candidates.Count;

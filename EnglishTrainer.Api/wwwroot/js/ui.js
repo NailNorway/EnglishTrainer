@@ -169,7 +169,7 @@ export function progressBar(value, max) {
 export function achievementBadge(item) {
     return `
         <div class="achievement ${item.unlocked ? 'is-unlocked' : ''}">
-            <div class="achievement__mark" aria-hidden="true">${item.unlocked ? '🏆' : '🔒'}</div>
+            <div class="achievement__mark" aria-hidden="true">${esc(item.icon ?? '🏅')}</div>
             <div class="achievement__body">
                 <b>${esc(item.title)}</b>
                 <span class="hint">${item.unlocked
@@ -198,7 +198,7 @@ export function achievementGoal(achievements) {
     return `
         <div class="card goal">
             <div class="goal__head">
-                <span class="goal__mark" aria-hidden="true">🎯</span>
+                <span class="goal__mark" aria-hidden="true">${esc(goal.icon ?? '🎯')}</span>
                 <div>
                     <b>${esc(goal.title)}</b>
                     <p class="hint">${esc(goal.description)}</p>

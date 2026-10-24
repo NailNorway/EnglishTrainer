@@ -52,9 +52,9 @@ async function showDecks(container, context) {
                 </div>` : ''}
 
             <div class="stat-grid">
-                ${statTile(summary.learnedCards, 'выучено', 'accent')}
-                ${statTile(summary.cardsInProgress, 'в работе')}
-                ${statTile(summary.dueNow, 'пора повторить')}
+                ${statTile(summary.learnedCards, 'выучено', 'accent', '#/words/learned')}
+                ${statTile(summary.cardsInProgress, 'в работе', '', '#/words/in-progress')}
+                ${statTile(summary.dueNow, 'пора повторить', '', '#/words/due')}
                 ${statTile(`${summary.reviewedToday} из ${summary.dailyGoal}`, 'ответов сегодня')}
                 ${statTile(`${summary.accuracyLast30Days}%`, 'удержание')}
                 ${statTile(`🔥 ${summary.currentStreak}`, 'серия дней', 'flame')}
@@ -171,8 +171,13 @@ async function safeDecks(container, context) {
     }
 }
 
-function statTile(value, label, modifier = '') {
-    return `<div class="stat ${modifier ? `stat--${modifier}` : ''}"><b>${esc(value)}</b><span>${esc(label)}</span></div>`;
+function statTile(value, label, modifier = '', href = '') {
+    const inner = `<b>${esc(value)}</b><span>${esc(label)}</span>`;
+    const className = `stat ${modifier ? `stat--${modifier}` : ''}${href ? ' stat--link' : ''}`;
+
+    return href
+        ? `<a class="${className}" href="${href}">${inner}</a>`
+        : `<div class="${className}">${inner}</div>`;
 }
 
 function deckCard(deck) {
@@ -586,7 +591,7 @@ async function toggleStar(button, rawWordId) {
 
 /* ── Сессия ─────────────────────────────────────────────────────────────── */
 
-async function startSession(container, context, deckId, cram = false) {
+export async function startSession(container, context, deckId, cram = false, onlyDue = false) {
     container.innerHTML = '<p class="hint">Собираем очередь…</p>';
 
     // Параметры собираются через URLSearchParams, а не склейкой строки: пустой
@@ -597,6 +602,9 @@ async function startSession(container, context, deckId, cram = false) {
     }
     if (cram) {
         params.set('cram', 'true');
+    }
+    if (onlyDue) {
+        params.set('onlyDue', 'true');
     }
 
     const query = params.toString();
@@ -719,9 +727,9 @@ async function showSummary(container, context) {
             </div>
 
             <div class="stat-grid" style="margin-top: 20px">
-                ${statTile(summary.learnedCards, 'выучено', 'accent')}
-                ${statTile(summary.cardsInProgress, 'в работе')}
-                ${statTile(summary.dueNow, 'пора повторить')}
+                ${statTile(summary.learnedCards, 'выучено', 'accent', '#/words/learned')}
+                ${statTile(summary.cardsInProgress, 'в работе', '', '#/words/in-progress')}
+                ${statTile(summary.dueNow, 'пора повторить', '', '#/words/due')}
                 ${statTile(`${summary.reviewedToday} из ${summary.dailyGoal}`, 'ответов сегодня')}
                 ${statTile(`${summary.accuracyLast30Days}%`, 'удержание')}
                 ${statTile(`🔥 ${summary.currentStreak}`, 'серия дней', 'flame')}

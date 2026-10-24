@@ -369,6 +369,16 @@
 <div class="toast" id="toast" hidden></div>
 <div class="loader" id="loader" hidden><div class="spinner"></div></div>
 
+<dialog class="word-dialog" id="word-dialog">
+    <div class="word-dialog__card">
+        <button type="button" class="word-dialog__close" id="word-dialog-close"
+                aria-label="Закрыть" title="Закрыть">
+            <svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg>
+        </button>
+        <div id="word-dialog-content"></div>
+    </div>
+</dialog>
+
 <script type="module" src="/js/app.js"></script>
 </body>
 </html>

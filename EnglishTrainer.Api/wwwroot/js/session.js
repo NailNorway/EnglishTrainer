@@ -170,7 +170,9 @@ export function runSession(container, session, onExit) {
         container.innerHTML = `
             <div class="session-bar">
                 <span class="pill">${icon('book', 'icon--sm')}карточка ${card.position} из ${run.totalItems}</span>
-                <span class="pill">${esc(kindLabel(card.kind))}</span>
+                ${card.kind === 1
+                    ? `<span class="pill pill--new">NEW · ${esc(kindLabel(card.kind))}</span>`
+                    : `<span class="pill">${esc(kindLabel(card.kind))}</span>`}
                 <span class="spacer"></span>
                 <button type="button" class="btn btn--ghost btn--sm" id="session-exit">
                     ${icon('close', 'icon--sm')} Прервать

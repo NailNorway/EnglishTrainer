@@ -25,6 +25,7 @@ import * as settings from './pages/settings.js';
 import * as profile from './pages/profile.js';
 import * as player from './pages/user.js';
 import * as updates from './pages/updates.js';
+import * as words from './pages/words.js';
 
 /*
  * Разделы меню. Адрес профиля игрока — единственный с переменной частью
@@ -42,6 +43,7 @@ const routes = [
     { path: 'friends', title: 'Друзья', icon: 'users', page: friends, badge: 'friends' },
     { path: 'settings', title: 'Настройки', icon: 'settings', page: settings },
     { path: 'profile', title: 'Профиль', icon: 'user', page: profile },
+    { path: 'words', title: 'Слова', page: words, nav: 'study', menu: false },
     { path: 'user', title: 'Профиль игрока', page: player, nav: 'friends', menu: false },
     { path: 'updates', title: 'Что нового', page: updates, nav: 'profile', menu: false }
 ];

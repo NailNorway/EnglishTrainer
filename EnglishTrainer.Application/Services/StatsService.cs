@@ -1,6 +1,8 @@
 using EnglishTrainer.Application.Dtos;
+using EnglishTrainer.Application.Mapping;
 using EnglishTrainer.Domain.Abstractions;
 using EnglishTrainer.Domain.Entities;
+using EnglishTrainer.Domain.Enums;
 using EnglishTrainer.Domain.Exceptions;
 using EnglishTrainer.Domain.Repositories;
 using EnglishTrainer.Domain.Stats;
@@ -13,6 +15,7 @@ public sealed class StatsService(
     ICardStateRepository cardStates,
     IDailyStatRepository dailyStats,
     IReviewLogRepository reviewLogs,
+    IWordRepository words,
     IClock clock)
 {
     private const int RetentionWindowDays = 30;
@@ -48,6 +51,44 @@ public sealed class StatsService(
             // Цель отдаётся вместе со сводкой: день идёт в серию только при её
             // выполнении, и человек должен видеть, сколько ответов до неё осталось.
             (user.Settings ?? new UserSettings()).DailyGoal);
+    }
+
+    /// <summary>
+    /// Слова для страниц прогресса: «в работе», «пора повторить», «выучено».
+    /// </summary>
+    /// <remarks>
+    /// Состояния и слова читаются двумя запросами, а не join-ом в репозитории:
+    /// словарь общий, и его удобнее доставать тем же методом, что и очередь
+    /// тренировки — с переводами и примерами, без N+1.
+    /// </remarks>
+    public async Task<IReadOnlyList<WordProgressDto>> GetWordsAsync(
+        int userId, WordProgressScope scope, CancellationToken ct = default)
+    {
+        var states = await cardStates.GetProgressAsync(userId, scope, clock.UtcNow, ct);
+
+        if (states.Count == 0)
+            return [];
+
+        var details = await words.GetWithDetailsByIdsAsync(
+            [.. states.Select(state => state.WordId)], ct);
+
+        var result = new List<WordProgressDto>(states.Count);
+
+        foreach (var state in states)
+        {
+            if (!details.TryGetValue(state.WordId, out var word))
+                continue;
+
+            result.Add(new WordProgressDto(
+                word.ToDto(),
+                state.Phase,
+                state.IsLearned,
+                state.IntervalDays,
+                state.DueAt,
+                state.LastReviewedAt));
+        }
+
+        return result;
     }
 
     public async Task<ActivityDto> GetActivityAsync(

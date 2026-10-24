@@ -23,11 +23,12 @@ public static class StudyEndpoints
             HttpContext context,
             int? deckId,
             bool? cram,
+            bool? onlyDue,
             StudySessionService service,
             CancellationToken ct) =>
         {
             var session = await service.GetOrCreateSessionAsync(
-                context.User.GetUserId(), deckId, cram ?? false, ct);
+                context.User.GetUserId(), deckId, cram ?? false, onlyDue ?? false, ct);
 
             return Results.Ok(session);
         })
@@ -38,7 +39,8 @@ public static class StudyEndpoints
             "Правильного ответа в ответе нет — он проверяется на сервере. " +
             "Если повторять нечего, сессия не создаётся: приходит пустая очередь " +
             "с датой ближайшего повторения. Параметр cram=true собирает очередь " +
-            "вне расписания — карточки с самым близким сроком.");
+            "вне расписания — карточки с самым близким сроком. onlyDue=true " +
+            "оставляет только просроченные повторения и не расходует лимит новых слов.");
 
         group.MapGet("/session/active", async (
             HttpContext context,

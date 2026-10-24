@@ -120,6 +120,7 @@ public sealed class AchievementService(
             definition.Code,
             definition.Title,
             definition.Description,
+            definition.Icon,
             definition.Target,
             // Прогресс обрезается по порогу: «120 из 100» читается как ошибка,
             // а не как перевыполнение — награда не выдаётся дважды.

@@ -72,19 +72,38 @@ public sealed class WordRepository(AppDbContext context) : IWordRepository
     }
 
     public async Task<IReadOnlyList<Word>> GetNewWordsForUserAsync(
-        int userId, int deckId, int limit, CancellationToken ct = default)
+        int userId, int? deckId, int limit, CancellationToken ct = default)
     {
         if (limit <= 0)
             return [];
 
-        // Слова колоды, по которым у пользователя ещё нет состояния карточки.
+        // Слова, по которым у пользователя ещё нет состояния карточки.
+        // Без выбранной колоды поиск идёт по всем колодам: иначе после
+        // прохождения первой системной колоды новые слова переставали
+        // приходить, хотя в остальных словаре их ещё много.
+        var query = context.Words
+            .Where(w => !context.CardStates.Any(cs => cs.UserId == userId && cs.WordId == w.Id));
+
+        if (deckId is { } id)
+        {
+            query = query.Where(w => context.DeckWords.Any(dw => dw.DeckId == id && dw.WordId == w.Id));
+        }
+        else
+        {
+            // Системные колоды и собственные колоды пользователя. Чужие личные
+            // колоды в общий подбор попадать не должны: слова в них — личный
+            // материал другого человека, даже если само слово есть в словаре.
+            query = query.Where(w => context.DeckWords.Any(dw =>
+                dw.WordId == w.Id
+                && context.Decks.Any(d => d.Id == dw.DeckId
+                    && (d.IsSystem || d.OwnerId == userId))));
+        }
+
         // Сортировка по частотному рангу: первыми идут самые употребительные,
         // а не случайные. NULL в конце — слова без ранга наименее приоритетны.
         // Когда ранга нет ни у кого (словарь загружен из файлов), порядок задаёт
         // идентификатор, то есть последовательность внутри файла колоды.
-        return await context.Words
-            .Where(w => context.DeckWords.Any(dw => dw.DeckId == deckId && dw.WordId == w.Id)
-                        && !context.CardStates.Any(cs => cs.UserId == userId && cs.WordId == w.Id))
+        return await query
             .OrderBy(w => w.FrequencyRank == null)
             .ThenBy(w => w.FrequencyRank)
             .ThenBy(w => w.Id)

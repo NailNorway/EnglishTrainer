@@ -124,4 +124,30 @@ public sealed class CardStateRepository(AppDbContext context) : ICardStateReposi
             ? new CardStateSummary(0, 0, 0)
             : new CardStateSummary(row.Total, row.Learned, row.DueNow);
     }
+
+    public async Task<IReadOnlyList<CardState>> GetProgressAsync(
+        int userId, WordProgressScope scope, DateTime nowUtc, CancellationToken ct = default)
+    {
+        var query = context.CardStates.Where(c => c.UserId == userId);
+
+        query = scope switch
+        {
+            WordProgressScope.InProgress =>
+                query.Where(c => c.IntervalDays < CardState.LearnedIntervalDays),
+            WordProgressScope.Due =>
+                query.Where(c => c.DueAt <= nowUtc),
+            WordProgressScope.Learned =>
+                query.Where(c => c.IntervalDays >= CardState.LearnedIntervalDays),
+            _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Неизвестный срез слов.")
+        };
+
+        // У выученных срока «пора» уже нет; пользователю полезнее видеть
+        // недавно повторённые. У остальных ближайший срок — главный ориентир.
+        query = scope == WordProgressScope.Learned
+            ? query.OrderByDescending(c => c.LastReviewedAt ?? DateTime.MinValue)
+                .ThenBy(c => c.WordId)
+            : query.OrderBy(c => c.DueAt).ThenBy(c => c.WordId);
+
+        return await query.AsNoTracking().ToListAsync(ct);
+    }
 }
