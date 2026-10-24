@@ -213,7 +213,7 @@
       "ipaUs": "/wiː niːd tə ˈklærəfaɪ ðə ˈdiːteɪlz/",
       "level": "B2",
       "translations": [
-        { "text": "нужно уточнить детали", "sense": null, "isPrimary": true }
+        { "text": "нам нужно уточнить детали", "sense": null, "isPrimary": true }
       ],
       "examples": [
         { "textEn": "We need to clarify the details before we start.", "textRu": "Нам нужно уточнить детали, прежде чем начинать.", "audioUrl": null, "attribution": null },

@@ -187,12 +187,40 @@ public sealed class VocabularySeeder(AppDbContext context, ILogger<VocabularySee
 
         foreach (var translation in seed.Translations)
         {
-            var exists = word.Translations.Any(t =>
+            var existing = word.Translations.FirstOrDefault(t =>
                 string.Equals(t.Text, translation.Text, StringComparison.Ordinal) &&
                 string.Equals(t.Sense, translation.Sense, StringComparison.Ordinal));
 
-            if (exists)
+            if (existing is not null)
+            {
+                if (translation.IsPrimary)
+                {
+                    // Исправление уже существующего перевода не должно оставлять
+                    // два основных: словарь задаёт один основной вариант.
+                    foreach (var item in word.Translations)
+                        item.IsPrimary = false;
+
+                    existing.IsPrimary = true;
+                }
+
                 continue;
+            }
+
+            // Если в словаре исправили основной перевод (например, «нужно
+            // уточнить детали» → «нам нужно уточнить детали»), старую строку
+            // нужно заменить, а не добавлять рядом вторую основную. Раньше
+            // импорт умел только дополнять, и исправление не доходило до базы.
+            if (translation.IsPrimary)
+            {
+                var primary = word.Translations.FirstOrDefault(t => t.IsPrimary);
+
+                if (primary is not null)
+                {
+                    primary.Text = translation.Text;
+                    primary.Sense = translation.Sense;
+                    continue;
+                }
+            }
 
             word.Translations.Add(new WordTranslation
             {

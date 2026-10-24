@@ -930,6 +930,10 @@ audio { width: 100%; margin-bottom: 18px; }
 
 .answer-row { display: flex; gap: 10px; margin-top: 6px; }
 
+/* «Не знаю» — отдельное действие, а не продолжение поля ввода. Без отступа
+   кнопка прилипает к нижней границе input и читается как его часть. */
+.session-actions { margin-top: 12px; }
+
 .verdict { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 700; margin-bottom: 12px; }
 .verdict--ok { color: var(--ok); }
 .verdict--no { color: var(--no); }
@@ -1367,7 +1371,7 @@ body.keyboard-open .main { padding-bottom: 0; }
 body.is-telegram .choice { padding: 10px 12px; font-size: 15px; gap: 10px; }
 body.is-telegram .choices { gap: 8px; }
 
-body.is-telegram .session-actions { margin-top: 8px; }
+body.is-telegram .session-actions { margin-top: 12px; }
 body.is-telegram .session-actions .btn { padding: 6px 10px; font-size: 13px; }
 
 /* Разбор ответа: примеры переносятся тише, а «Дальше» остаётся на виду. */
@@ -1670,6 +1674,13 @@ body.is-telegram .topbar__theme { display: none; }
     flex-wrap: wrap;
     gap: 6px;
     margin: 16px 0 4px;
+}
+
+.word-dialog__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
 }
 
 .word-examples {
