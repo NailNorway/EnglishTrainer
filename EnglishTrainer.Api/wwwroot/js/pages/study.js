@@ -7,6 +7,7 @@ import { isFavorite, toggleFavorite, refreshFavorites } from '../state.js';
 import {
     esc, icon, plural, toast, emptyState, starButton, achievementGoal
 } from '../ui.js';
+import { canSpeak, speak } from '../speech.js';
 import { runSession, stopSession } from '../session.js';
 import { confirmAction } from '../telegram.js';
 
@@ -284,9 +285,10 @@ async function showDeckWords(container, context, slug) {
 
             <p class="hint" style="margin-bottom: 16px">
                 ${deck.isOwned
-                    ? 'Слова в свою колоду добавляются здесь же. Звёздочка отправляет слово в избранное.'
+                    ? 'Слова в свою колоду добавляются здесь же. Звёздочка отправляет слово в избранное, '
+                      + 'а кнопка с динамиком произносит его вслух.'
                     : 'Звёздочка добавляет слово в избранное: такие слова идут первыми в очереди '
-                      + 'повторений и доступны отдельной тренировкой.'}
+                      + 'повторений и доступны отдельной тренировкой. Кнопка с динамиком произносит слово.'}
             </p>
 
             ${deck.isOwned ? addWordBlock() : ''}
@@ -298,6 +300,8 @@ async function showDeckWords(container, context, slug) {
                    </p></div>`}`;
 
         container.querySelector('#back').addEventListener('click', () => showDecks(container, context));
+
+        bindSpeakButtons(container);
 
         container.querySelectorAll('[data-favorite]').forEach((button) => {
             button.addEventListener('click', () => toggleStar(button, button.dataset.favorite));
@@ -442,6 +446,7 @@ async function searchWords(event, container, context, slug) {
                            </div>
                            <div class="word-row__side">
                                <span class="badge">${esc(PART_NAMES[word.partOfSpeech] ?? word.partOfSpeech)}</span>
+                               ${speakButton(word.lemma)}
                                <button type="button" class="btn btn--ghost btn--sm" data-add-word="${word.id}">
                                    ${icon('plus', 'icon--sm')} Добавить
                                </button>
@@ -449,6 +454,8 @@ async function searchWords(event, container, context, slug) {
                        </div>`).join('')}
                </div>`
             : '<p class="hint">Ничего не нашлось. Заведите слово как новое — оно попадёт в словарь.</p>';
+
+        bindSpeakButtons(slot);
 
         slot.querySelectorAll('[data-add-word]').forEach((button) => {
             button.addEventListener('click', () => addExistingWord(container, context, slug, Number(button.dataset.addWord)));
@@ -497,12 +504,43 @@ function wordRow(word, owned = false) {
             </div>
             <div class="word-row__side">
                 ${word.level && word.level !== 0 ? `<span class="badge">${esc(levelName(word.level))}</span>` : ''}
+                ${speakButton(word.lemma)}
                 ${starButton(word.id, isFavorite(word.id))}
                 ${owned ? `
                     <button type="button" class="star" data-remove-word="${word.id}"
                             title="Убрать из колоды">${icon('close')}</button>` : ''}
             </div>
         </div>`;
+}
+
+/**
+ * Кнопка прослушивания слова.
+ *
+ * Показывается только там, где браузер умеет синтез речи. В остальных случаях
+ * кнопка, которая молчит, хуже её отсутствия: человек решит, что сломалась
+ * озвучка, а не браузер.
+ */
+function speakButton(lemma) {
+    if (!canSpeak() || !lemma) {
+        return '';
+    }
+
+    return `
+        <button type="button" class="word-row__speak" data-speak="${esc(lemma)}"
+                title="Прослушать" aria-label="Прослушать ${esc(lemma)}">
+            ${icon('volume', 'icon--sm')}
+        </button>`;
+}
+
+/** Обработчик один на всю разметку: слов в колоде бывает много. */
+function bindSpeakButtons(root) {
+    root.querySelectorAll('[data-speak]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            speak(button.dataset.speak);
+        });
+    });
 }
 
 /* ── Мелкие помощники страницы ──────────────────────────────────────────── */

@@ -50,10 +50,13 @@ const routes = [
 const $ = (id) => document.getElementById(id);
 
 const elements = {
+    home: $('screen-home'),
     auth: $('screen-auth'),
     forgot: $('screen-forgot'),
     reset: $('screen-reset'),
     telegram: $('screen-telegram'),
+    updates: $('screen-updates'),
+    publicUpdates: $('public-updates-content'),
     app: $('app'),
     nav: $('nav'),
     foot: $('sidebar-foot'),
@@ -107,6 +110,7 @@ onUnauthorized(async () => {
 boot();
 
 async function boot() {
+    bindHome();
     bindAuthForm();
     bindForgotForm();
     bindResetForm();
@@ -128,6 +132,13 @@ async function boot() {
     }
 
     if (!getToken()) {
+        // История обновлений открывается и без входа: на неё ведёт ссылка
+        // с главной страницы.
+        if (isUpdatesHash()) {
+            await showPublicUpdates();
+            return;
+        }
+
         if (inTelegram) {
             // Внутри Telegram формы входа нет: человек уже подтвердил, кто он.
             // Остаётся понять, привязан ли этот аккаунт к прогрессу.
@@ -135,7 +146,7 @@ async function boot() {
             return;
         }
 
-        showAuth();
+        showHome();
         return;
     }
 
@@ -275,6 +286,52 @@ function renderThemeIcon() {
     button.setAttribute('aria-label', label);
 }
 
+/* ── Главная страница ───────────────────────────────────────────────────── */
+
+function bindHome() {
+    $('home-login').addEventListener('click', () => showAuth());
+
+    $('home-register').addEventListener('click', () => {
+        showAuth();
+        setAuthMode('register');
+    });
+
+    $('auth-home').addEventListener('click', (event) => {
+        event.preventDefault();
+        showHome();
+    });
+
+    $('updates-home').addEventListener('click', () => showHome());
+}
+
+function showHome() {
+    stopSession();
+    showAuthScreen('home');
+
+    // Главная живёт без адреса раздела: после публичной истории обновлений
+    // или выхода из профиля в строке не должен оставаться чужой хеш.
+    if (location.hash) {
+        history.replaceState(null, '', location.pathname + location.search);
+    }
+}
+
+async function showPublicUpdates() {
+    stopSession();
+    showAuthScreen('updates');
+
+    // Страница обновлений — обычный модуль, но её кнопка «В профиль» в
+    // публичном режиме ведёт на главную: профиля без входа ещё нет.
+    await updates.render(elements.publicUpdates, {
+        ...context,
+        public: true,
+        navigate: (path) => {
+            if (path === 'home' || path === 'profile') {
+                showHome();
+            }
+        }
+    });
+}
+
 /* ── Вход и регистрация ─────────────────────────────────────────────────── */
 
 function bindAuthForm() {
@@ -370,10 +427,12 @@ function showAuth(message) {
 
 /** Показывает один экран вне оболочки и прячет остальные. */
 function showAuthScreen(name) {
+    elements.home.hidden = name !== 'home';
     elements.auth.hidden = name !== 'auth';
     elements.forgot.hidden = name !== 'forgot';
     elements.reset.hidden = name !== 'reset';
     elements.telegram.hidden = name !== 'telegram';
+    elements.updates.hidden = name !== 'updates';
     elements.app.hidden = true;
 }
 
@@ -387,7 +446,9 @@ async function authenticate() {
     }
 
     const isRegistration = authMode === 'register';
-    const identifier = $('email').value.trim();
+    // Ник в профиле показывается как @ivan, и его часто копируют в поле целиком.
+    // Сервер тоже снимает ведущую «@», здесь — чтобы не отправлять лишнее.
+    const identifier = $('email').value.trim().replace(/^@+/, '');
     const password = $('password').value;
     const repeated = $('password2').value;
     // Ник иногда набирают с собачкой, как в адресе профиля: сервер её не ждёт.
@@ -880,7 +941,9 @@ function logout() {
         return;
     }
 
-    showAuth();
+    // В браузере после выхода показываем главную: оттуда можно войти другим
+    // аккаунтом или зарегистрироваться, не возвращаясь в форму принудительно.
+    showHome();
 }
 
 function renderNav() {
@@ -917,6 +980,10 @@ function isForgotHash() {
     return location.hash.startsWith('#/forgot');
 }
 
+function isUpdatesHash() {
+    return location.hash.startsWith('#/updates');
+}
+
 async function route() {
     // Экраны восстановления пароля живут вне оболочки, но приходят обычным
     // хешем: их нужно перехватить до выбора страницы, иначе роутер отрисует
@@ -931,9 +998,19 @@ async function route() {
         return;
     }
 
+    // История обновлений доступна до входа: на неё ведёт ссылка с главной.
+    if (!getToken() && isUpdatesHash()) {
+        await showPublicUpdates();
+        return;
+    }
+
     // Пока оболочка скрыта, страницы не отрисовываются: иначе смена хеша на
     // экране входа втихую готовила бы страницу в скрытом контейнере.
     if (elements.app.hidden) {
+        // Возврат с публичной истории обновлений по кнопке «назад» в браузере.
+        if (!getToken() && (!location.hash || location.hash === '#/')) {
+            showHome();
+        }
         return;
     }
 

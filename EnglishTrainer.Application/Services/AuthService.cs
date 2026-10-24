@@ -241,9 +241,12 @@ public sealed class AuthService(
     /// <remarks>
     /// Работает и для email, и для ника: оба хранятся в нижнем регистре, поэтому
     /// «Ivan@Mail.ru» и «ivan@mail.ru», как и «Ivan» и «ivan», — один и тот же вход.
+    /// Ведущая «@» отбрасывается: ник в профиле показывается как «@ivan», и люди
+    /// часто переносят его в поле входа вместе с собачкой. Для email это ничего
+    /// не меняет — корректный адрес с «@» не начинается.
     /// </remarks>
     public static string NormalizeIdentifier(string? value) =>
-        (value ?? string.Empty).Trim().ToLowerInvariant();
+        (value ?? string.Empty).Trim().TrimStart('@').ToLowerInvariant();
 
     private static void ValidateEmail(string email)
     {

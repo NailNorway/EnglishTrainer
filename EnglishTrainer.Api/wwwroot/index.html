@@ -4,8 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>EnglishTrainer — тренажёр словарного запаса</title>
+    <meta name="description" content="Короткие сессии английских слов, повторение с интервалами, колоды, серия дней и Telegram-мини-апп.">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/styles.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📘</text></svg>">
 
     <!--
         Тема выставляется до первой отрисовки. Без этого скрипта тёмная палитра
@@ -58,6 +59,7 @@
     <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
     <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6"/><path d="M20 5v6h-6"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a8 8 0 0 1 0 12"/></symbol>
     <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a6 6 0 0 0-3.5 10.9c.4.3.5.7.5 1.1v1h6v-1c0-.4.1-.8.5-1.1A6 6 0 0 0 12 2z"/></symbol>
     <!-- Глаз для кнопки показа пароля: в наборе его не было, а похожая по смыслу
          иконка сбивала бы с толку. Описан здесь, чтобы не дублировать пути. -->
@@ -69,6 +71,65 @@
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></symbol>
     <symbol id="i-send" viewBox="0 0 24 24"><path d="M21.5 3.5 2.5 10.6l6.4 2.5 2.5 6.4z"/><path d="M21.5 3.5 8.9 13.1"/></symbol>
 </svg>
+
+<!-- ── Главная страница ─────────────────────────────────────────────────── -->
+<!--
+     Первый экран для тех, кто ещё не вошёл. Раньше сразу открывалась форма
+     входа: человек, впервые попавший на сайт, видел поля для пароля и не
+     понимал, что это за приложение. Здесь — короткое объяснение, вход и
+     регистрация, а история обновлений доступна без аккаунта.
+-->
+<div class="auth-screen home-screen" id="screen-home" hidden>
+    <main class="home">
+        <section class="home__hero">
+            <img class="home__logo" src="/favicon.svg" alt="" width="76" height="76">
+            <div class="brand brand--lg">English<span>Trainer</span></div>
+            <h1>Английские слова, которые остаются в памяти</h1>
+            <p class="lead">
+                Короткие ежедневные сессии: сначала повторение того, что пора вспомнить,
+                потом новые слова. Ответ проверяет сервер, а интервалы пересчитывает
+                алгоритм — поэтому слова не просто пролистываются, а запоминаются.
+            </p>
+            <div class="home__actions">
+                <button type="button" class="btn btn--primary" id="home-register">Зарегистрироваться</button>
+                <button type="button" class="btn btn--ghost" id="home-login">Войти</button>
+            </div>
+        </section>
+
+        <section class="home__features" aria-label="Что умеет приложение">
+            <article class="home__feature">
+                <span class="home__feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-book"></use></svg></span>
+                <div>
+                    <b>Колоды и словарь</b>
+                    <span>18 тематических колод и свои собственные. Перевод, пример и транскрипция у каждого слова.</span>
+                </div>
+            </article>
+            <article class="home__feature">
+                <span class="home__feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-refresh"></use></svg></span>
+                <div>
+                    <b>Повторение с интервалами</b>
+                    <span>Слова возвращаются тогда, когда начинают забываться, а не по случайному расписанию.</span>
+                </div>
+            </article>
+            <article class="home__feature">
+                <span class="home__feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-flame"></use></svg></span>
+                <div>
+                    <b>Серия и дневная цель</b>
+                    <span>Цель на день, серия, достижения и недельный рейтинг среди друзей.</span>
+                </div>
+            </article>
+            <article class="home__feature">
+                <span class="home__feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-send"></use></svg></span>
+                <div>
+                    <b>Telegram рядом</b>
+                    <span>Мини-апп внутри Telegram, напоминания в боте и слово дня.</span>
+                </div>
+            </article>
+        </section>
+
+        <a class="home__updates" href="#/updates">История обновлений</a>
+    </main>
+</div>
 
 <!-- ── Экран входа и регистрации ─────────────────────────────────────────── -->
 <!-- Форма одна на два режима: набор полей отличается только подписью и парой
@@ -98,7 +159,7 @@
                 <input type="text" id="email" required autocomplete="username"
                        placeholder="you@example.com или ваш ник">
             </label>
-            <p class="hint field-hint" id="identifier-hint">Можно ввести email или ник — как вам удобнее</p>
+            <p class="hint field-hint" id="identifier-hint">Можно ввести email или ник из профиля — например, @ivan</p>
 
             <label class="field field--password">
                 <span>Пароль</span>
@@ -134,6 +195,25 @@
             <p class="hint" id="forgot-hint"><a href="#/forgot" id="forgot-link">Забыли пароль?</a></p>
             <p class="hint">Часовой пояс определится автоматически по браузеру.</p>
         </form>
+
+        <p class="hint home-back"><a href="#" id="auth-home">← На главную</a></p>
+    </div>
+</div>
+
+<!-- ── Публичная история обновлений ─────────────────────────────────────── -->
+<!--
+     Та же страница «Что нового», но без оболочки приложения: её открывают
+     с главной до входа. После входа работает обычный раздел в профиле.
+-->
+<div class="auth-screen public-updates" id="screen-updates" hidden>
+    <div class="public-updates__inner">
+        <div class="row" style="margin-bottom: 14px">
+            <button type="button" class="btn btn--ghost btn--sm" id="updates-home">
+                <svg class="icon icon--sm" aria-hidden="true"><use href="#i-close"></use></svg>
+                На главную
+            </button>
+        </div>
+        <div id="public-updates-content"></div>
     </div>
 </div>
 
