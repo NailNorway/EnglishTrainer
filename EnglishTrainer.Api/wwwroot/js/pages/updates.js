@@ -21,6 +21,41 @@ import { esc, icon, formatDate } from '../ui.js';
 
 const releases = [
     {
+        version: '1.2.0',
+        date: '2026-10-24',
+        title: 'Новый домен, главная страница и озвучка слов в колодах',
+        groups: [
+            {
+                title: 'Переезд',
+                items: [
+                    'Приложение переехало на новый домен englishtrainer.site. '
+                        + 'Кнопка меню в Telegram и ссылки в письмах теперь ведут туда же. '
+                        + 'Старый адрес больше не используется.',
+                ]
+            },
+            {
+                title: 'Новое',
+                items: [
+                    'Главная страница: коротко о тренажёре, кнопки «Зарегистрироваться» и «Войти», '
+                        + 'а история обновлений открывается даже без входа.',
+                    'Озвучка слов в колодах: рядом с каждым словом появилась кнопка прослушивания. '
+                        + 'Она работает через Web Speech API браузера — без записей и без загрузки '
+                        + 'аудиофайлов. Если браузер не умеет синтез речи, кнопка не показывается.',
+                ]
+            },
+            {
+                title: 'Исправления',
+                items: [
+                    'Вход по нику: поле принимает email или ник, а собачка «@» в начале ника '
+                        + 'больше не мешает входу. Причина была в нормализации: регистрация '
+                        + 'отбрасывала «@», а вход — нет.',
+                    'Подсказка на форме входа теперь прямо говорит, что ник — это имя из профиля, '
+                        + 'а не отображаемое имя.',
+                ]
+            }
+        ]
+    },
+    {
         version: '1.1.0',
         date: '2026-10-16',
         title: 'Точный подсчёт серии, аккуратная проверка ответов и почта для сброса пароля',
@@ -151,7 +186,8 @@ export async function render(container, context) {
 
         <div class="row" style="margin-top: 18px">
             <button type="button" class="btn btn--ghost" id="to-profile">
-                ${icon('user', 'icon--sm')} В профиль
+                ${context.public ? icon('close', 'icon--sm') : icon('user', 'icon--sm')}
+                ${context.public ? 'На главную' : 'В профиль'}
             </button>
         </div>
 
@@ -161,7 +197,7 @@ export async function render(container, context) {
         </p>`;
 
     container.querySelector('#to-profile')
-        .addEventListener('click', () => context.navigate('profile'));
+        .addEventListener('click', () => context.navigate(context.public ? 'home' : 'profile'));
 }
 
 /** Карточка выпуска, кроме самого свежего: он показан крупно выше. */
