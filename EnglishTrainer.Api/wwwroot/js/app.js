@@ -150,6 +150,14 @@ async function boot() {
         return;
     }
 
+    // Пользователь уже вошёл, но пришёл на корень сайта: показываем главную
+    // с кнопками, а не сразу тренировку. Это нужно, чтобы логотип в меню вёл
+    // на сайт и после входа. Кнопка «Войти» здесь откроет тренировку.
+    if (!location.hash || location.hash === '#/') {
+        showHome();
+        return;
+    }
+
     setLoading(true);
 
     try {
@@ -289,7 +297,16 @@ function renderThemeIcon() {
 /* ── Главная страница ───────────────────────────────────────────────────── */
 
 function bindHome() {
-    $('home-login').addEventListener('click', () => showAuth());
+    $('home-login').addEventListener('click', () => {
+        // Если человек уже вошёл, «Войти» с главной ведёт прямо в тренировку:
+        // заставлять его снова вводить пароль бессмысленно.
+        if (getToken()) {
+            void enterExistingSession();
+            return;
+        }
+
+        showAuth();
+    });
 
     $('home-register').addEventListener('click', () => {
         showAuth();
@@ -848,10 +865,12 @@ async function loadShell() {
 
 async function enterApp() {
     // Экраны авторизации прячутся: после входа оболочка показывается вместо них.
+    elements.home.hidden = true;
     elements.auth.hidden = true;
     elements.forgot.hidden = true;
     elements.reset.hidden = true;
     elements.telegram.hidden = true;
+    elements.updates.hidden = true;
     elements.app.hidden = false;
 
     if (!location.hash) {
@@ -862,6 +881,26 @@ async function enterApp() {
     }
 
     await route();
+}
+
+/**
+ * Вход в уже существующий сеанс с главной страницы.
+ *
+ * Токен уже есть, но оболочка не загружена: после клика «Войти» нужно получить
+ * профиль и показать приложение. Если токен успел истечь, обычная обработка
+ * ошибки покажет форму входа.
+ */
+async function enterExistingSession() {
+    setLoading(true);
+
+    try {
+        await loadShell();
+        await enterApp();
+    } catch {
+        showAuth();
+    } finally {
+        setLoading(false);
+    }
 }
 
 function refreshShell() {
