@@ -37,7 +37,7 @@
       Список правок живёт рядом, в wwwroot/js/pages/updates.js, и его последняя
       запись должна называться так же.
     -->
-    <Version>1.2.0</Version>
+    <Version>1.2.1</Version>
   </PropertyGroup>
 
 </Project>
