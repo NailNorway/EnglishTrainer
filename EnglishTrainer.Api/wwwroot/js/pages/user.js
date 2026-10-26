@@ -111,9 +111,9 @@ export async function render(container, context) {
     }
 }
 
-/** Ник из адреса вида #/user/ivan. */
+/** Ник из адреса вида /user/ivan. */
 function readUsername() {
-    const match = /^#\/user\/(.+)$/.exec(location.hash.split('?')[0]);
+    const match = /^\/user\/([^/]+)\/?$/.exec(location.pathname);
 
     if (!match) {
         return '';

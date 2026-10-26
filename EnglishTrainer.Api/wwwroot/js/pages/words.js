@@ -35,7 +35,7 @@ const SCOPES = {
 };
 
 export async function render(container, context) {
-    const scope = scopeFromHash();
+    const scope = scopeFromPath();
     const meta = SCOPES[scope] ?? SCOPES['in-progress'];
 
     bindWordDialog();
@@ -100,8 +100,10 @@ export async function render(container, context) {
     }
 }
 
-function scopeFromHash() {
-    const part = location.hash.replace(/^#\/words\/?/, '').split('?')[0];
+function scopeFromPath() {
+    // '/words/learned' → 'learned'. Пусто после /words — раздел «в работе»,
+    // он же значение по умолчанию: на него ведёт пункт «Слова» из тренировки.
+    const part = location.pathname.replace(/^\/words\/?/, '').split('/')[0];
     return part || 'in-progress';
 }
 

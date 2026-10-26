@@ -52,9 +52,9 @@ async function showDecks(container, context) {
                 </div>` : ''}
 
             <div class="stat-grid">
-                ${statTile(summary.learnedCards, 'выучено', 'accent', '#/words/learned')}
-                ${statTile(summary.cardsInProgress, 'в работе', '', '#/words/in-progress')}
-                ${statTile(summary.dueNow, 'пора повторить', '', '#/words/due')}
+                ${statTile(summary.learnedCards, 'выучено', 'accent', '/words/learned')}
+                ${statTile(summary.cardsInProgress, 'в работе', '', '/words/in-progress')}
+                ${statTile(summary.dueNow, 'пора повторить', '', '/words/due')}
                 ${statTile(`${summary.reviewedToday} из ${summary.dailyGoal}`, 'ответов сегодня')}
                 ${statTile(`${summary.accuracyLast30Days}%`, 'удержание')}
                 ${statTile(`🔥 ${summary.currentStreak}`, 'серия дней', 'flame')}
@@ -727,9 +727,9 @@ async function showSummary(container, context) {
             </div>
 
             <div class="stat-grid" style="margin-top: 20px">
-                ${statTile(summary.learnedCards, 'выучено', 'accent', '#/words/learned')}
-                ${statTile(summary.cardsInProgress, 'в работе', '', '#/words/in-progress')}
-                ${statTile(summary.dueNow, 'пора повторить', '', '#/words/due')}
+                ${statTile(summary.learnedCards, 'выучено', 'accent', '/words/learned')}
+                ${statTile(summary.cardsInProgress, 'в работе', '', '/words/in-progress')}
+                ${statTile(summary.dueNow, 'пора повторить', '', '/words/due')}
                 ${statTile(`${summary.reviewedToday} из ${summary.dailyGoal}`, 'ответов сегодня')}
                 ${statTile(`${summary.accuracyLast30Days}%`, 'удержание')}
                 ${statTile(`🔥 ${summary.currentStreak}`, 'серия дней', 'flame')}

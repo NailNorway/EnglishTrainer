@@ -59,7 +59,10 @@ public static class AuthEndpoints
             // тот же сервер, поэтому отдельная настройка адреса не нужна.
             // За обратным прокси адрес придётся задавать явно — внутренний
             // адрес контейнера человеку в письме бесполезен.
-            var resetLink = $"{PublicBaseUrl(context, email.Value)}/#/reset";
+            //
+            // Путь обычный, без хеша: хеш до сервера не доходит, а письма
+            // со старой ссылкой продолжает принимать adoptLegacyHash в интерфейсе.
+            var resetLink = $"{PublicBaseUrl(context, email.Value)}/reset";
 
             await service.RequestAsync(request.Login, resetLink, ct);
 

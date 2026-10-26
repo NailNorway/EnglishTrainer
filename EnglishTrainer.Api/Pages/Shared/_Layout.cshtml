@@ -1,0 +1,95 @@
+@using EnglishTrainer.Api.Ads
+@inject Microsoft.Extensions.Options.IOptions<AdsOptions> Ads
+
+@{
+    var title = ViewData["Title"] as string ?? "EnglishTrainer — тренажёр английских слов";
+    var description = ViewData["Description"] as string
+        ?? "Тематические колоды английских слов с переводом, транскрипцией и примерами. Повторение с интервалами и короткие ежедневные сессии.";
+    var canonical = ViewData["Canonical"] as string;
+}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>@title</title>
+    <meta name="description" content="@description" />
+
+    @*
+        canonical обязателен на всех публичных страницах: адрес колоды
+        открывается и строчными, и прописными буквами, и без него поисковик
+        получил бы две копии одной страницы.
+    *@
+    @if (!string.IsNullOrEmpty(canonical))
+    {
+        <link rel="canonical" href="@canonical" />
+        <meta property="og:url" content="@canonical" />
+    }
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="EnglishTrainer" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:title" content="@title" />
+    <meta property="og:description" content="@description" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/public.css" />
+
+    @* Счётчик подключается отдельным файлом: его номер приходит из настроек. *@
+    <script src="/seo.js" defer></script>
+
+    @*
+        Загрузчик рекламы подключается только на страницах, где блок действительно
+        есть, и только когда реклама включена в настройках. Иначе каждая страница
+        тянула бы сторонний скрипт впустую.
+    *@
+    @if (Ads.Value.CanRender && ViewData["AdSlot"] is true)
+    {
+        <script src="https://yandex.ru/ads/system/context.js" async></script>
+    }
+</head>
+<body>
+    <header class="site-header">
+        <a class="site-header__brand" href="/">English<span>Trainer</span></a>
+        <nav class="site-header__nav" aria-label="Разделы сайта">
+            <a href="/decks">Слова по темам</a>
+        </nav>
+    </header>
+
+    <main class="page">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <p class="site-footer__links">
+            <a href="/decks">Английские слова по темам</a>
+            <span aria-hidden="true">·</span>
+            <a href="/">Тренажёр слов</a>
+            <span aria-hidden="true">·</span>
+            <a href="/contacts">Контакты</a>
+            <span aria-hidden="true">·</span>
+            <a href="/privacy">Политика обработки данных</a>
+        </p>
+        <p class="muted">
+            EnglishTrainer — короткие ежедневные сессии, повторение с интервалами
+            и Telegram-мини-апп.
+        </p>
+    </footer>
+
+    @*
+        Разметка schema.org собирается на сервере из тех же данных, что и
+        страница, — вручную поддерживать её в разметке значило бы рассинхронизировать
+        с содержимым при первом же импорте словаря.
+
+        Тег выводится целиком через Html.Raw: Razor экранирует «+» в значении
+        атрибута («application/ld&#x2B;json»), и хотя браузер такую запись
+        разбирает верно, валидаторы и глаза человека видят мусор.
+        Содержимое безопасно: сериализатор экранирует «<» и «>», поэтому
+        закрыть тег изнутри данными словаря нельзя.
+    *@
+    @if (ViewData["JsonLd"] is string jsonLd)
+    {
+        @Html.Raw($"<script type=\"application/ld+json\">{jsonLd}</script>")
+    }
+</body>
+</html>

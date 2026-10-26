@@ -1,0 +1,27 @@
+@using EnglishTrainer.Api.Ads
+@inject Microsoft.Extensions.Options.IOptions<AdsOptions> Ads
+
+@*
+    Рекламный блок РСЯ.
+
+    Партиал, а не общий блок в макете: место показа выбирает страница.
+    Пока реклама выключена или блок не настроен, здесь не выводится ничего —
+    ни контейнера, ни скрипта, ни пустой рамки.
+*@
+@if (Ads.Value.CanRender)
+{
+    <aside class="ad-slot" aria-label="Реклама">
+        <span class="ad-slot__label">Реклама</span>
+        <div id="yandex_rtb_@Ads.Value.BlockId"></div>
+    </aside>
+
+    <script>
+        window.yaContextCb = window.yaContextCb || [];
+        window.yaContextCb.push(function () {
+            Ya.Context.AdvManager.render({
+                renderTo: 'yandex_rtb_@Ads.Value.BlockId',
+                blockId: '@Ads.Value.BlockId'
+            });
+        });
+    </script>
+}

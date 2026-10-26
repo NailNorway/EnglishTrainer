@@ -4,10 +4,18 @@
  *
  * Страницы — отдельные модули, каждая умеет только отрисоваться в контейнер.
  * Оболочка отвечает за то, что вокруг: сеанс, меню, выбор страницы по адресу.
- * Роутинг на хеше выбран потому, что не требует настройки сервера: любой
- * адрес вида /#/friends открывается без правки маршрутов на стороне API.
+ *
+ * Адреса обычные (/friends, /words/learned), а не хеш. Хеш до сервера не
+ * доходит, поэтому для поисковика весь сайт был одной страницей, а ссылку
+ * на раздел нельзя было ни отправить, ни сохранить. Обратная сторона: сервер
+ * обязан отдавать оболочку по каждому такому адресу (SpaEndpoints в API),
+ * иначе прямой заход и обновление страницы вернут 404.
+ *
+ * Старые адреса с хешем продолжают работать: ссылки в уже отправленных письмах
+ * и закладки переводятся в новый вид на входе (adoptLegacyHash), а не ломаются.
+ *
  * Экраны авторизации живут вне оболочки и показываются вместо неё, поэтому
- * в routes их нет: адреса #/forgot и #/reset перехватывает роутер.
+ * в routes их нет: адреса /forgot и /reset перехватывает роутер.
  */
 
 import { api, getToken, setToken, onUnauthorized } from './api.js';
@@ -29,7 +37,7 @@ import * as words from './pages/words.js';
 
 /*
  * Разделы меню. Адрес профиля игрока — единственный с переменной частью
- * (#/user/ник), и в меню он не показывается: это не раздел, а экран, который
+ * (/user/ник), и в меню он не показывается: это не раздел, а экран, который
  * открывается из списка друзей и из рейтинга. Активным при этом остаётся
  * «Друзья» — nav указывает, какой пункт подсвечивать.
  *
@@ -71,6 +79,11 @@ const context = { navigate, refreshShell, logout };
 let currentPath = null;
 let authMode = 'login';
 let resetToken = '';
+
+// Адрес, который счётчик уже посчитал при загрузке документа. Объявлен здесь,
+// а не рядом с функцией учёта: boot() выполняется раньше, чем до файла дойдёт
+// исполнение, и обращение к переменной ниже упало бы на «ещё не инициализирована».
+let countedPath = null;
 
 /* ── Оформление и Telegram ──────────────────────────────────────────────── */
 
@@ -118,17 +131,32 @@ async function boot() {
     bindResetForm();
     bindTelegramForm();
     bindPasswordToggles();
-    window.addEventListener('hashchange', route);
+
+    window.addEventListener('popstate', route);
+
+    // Клик по внутренней ссылке не должен перезагружать документ: приложение
+    // уже загружено, и полная перезагрузка ради смены раздела выглядела бы
+    // как переход на другой сайт — белый экран и заново собранное меню.
+    document.addEventListener('click', interceptLink);
+
+    // Ссылки из уже отправленных писем и старые закладки приходят с хешем.
+    // Переводятся в новый вид до любых проверок адреса, иначе форма сброса
+    // пароля не открылась бы по ссылке из письма.
+    adoptLegacyHash();
+
+    // Счётчик Метрики посчитал загрузку по этому адресу — всё, что дальше,
+    // это переходы внутри приложения, и о них нужно сообщать отдельно.
+    countedPath = location.pathname;
 
     // Ссылки восстановления приходят письмом и открываются по прямому адресу:
     // в браузере при этом мог остаться действующий токен другого человека,
     // и показать вместо формы сброса чужой аккаунт было бы худшим решением.
-    if (isResetHash()) {
+    if (isResetPath()) {
         showReset();
         return;
     }
 
-    if (isForgotHash()) {
+    if (isForgotPath()) {
         showForgot();
         return;
     }
@@ -136,7 +164,7 @@ async function boot() {
     if (!getToken()) {
         // История обновлений открывается и без входа: на неё ведёт ссылка
         // с главной страницы.
-        if (isUpdatesHash()) {
+        if (isUpdatesPath()) {
             await showPublicUpdates();
             return;
         }
@@ -155,7 +183,7 @@ async function boot() {
     // Пользователь уже вошёл, но пришёл на корень сайта: показываем главную
     // с кнопками, а не сразу тренировку. Это нужно, чтобы логотип в меню вёл
     // на сайт и после входа. Кнопка «Войти» здесь откроет тренировку.
-    if (!location.hash || location.hash === '#/') {
+    if (!pagePath()) {
         showHome();
         return;
     }
@@ -328,9 +356,12 @@ function showHome() {
     showAuthScreen('home');
 
     // Главная живёт без адреса раздела: после публичной истории обновлений
-    // или выхода из профиля в строке не должен оставаться чужой хеш.
-    if (location.hash) {
-        history.replaceState(null, '', location.pathname + location.search);
+    // или выхода из профиля в строке не должен оставаться чужой путь.
+    //
+    // replaceState, а не pushState: кнопка «назад» после выхода должна вести
+    // туда, откуда человек пришёл, а не возвращать его на закрытый раздел.
+    if (pagePath() || location.search) {
+        history.replaceState(null, '', '/');
     }
 }
 
@@ -363,22 +394,26 @@ function bindAuthForm() {
         setAuthMode(authMode === 'login' ? 'register' : 'login');
     });
 
-    // Обычно экран отрисует hashchange, но при переходе по адресу, который уже
+    // Обычно экран отрисует popstate, но при переходе по адресу, который уже
     // стоит в строке, событие не придёт — тогда показываем экран вручную.
     $('forgot-link').addEventListener('click', (event) => {
         event.preventDefault();
-        goToAuthScreen('#/forgot', showForgot);
+        goToAuthScreen('/forgot', showForgot);
     });
 }
 
-/** Переход на экран вне оболочки: хеш остаётся источником истины. */
-function goToAuthScreen(hash, show) {
-    if (location.hash.startsWith(hash)) {
+/** Переход на экран вне оболочки: адрес остаётся источником истины. */
+function goToAuthScreen(path, show) {
+    if (location.pathname === path) {
         show();
         return;
     }
 
-    location.hash = hash;
+    history.pushState(null, '', path);
+
+    // route() не зовётся: экран показывается напрямую, иначе роутер успел бы
+    // отрисовать раздел приложения в скрытый контейнер.
+    show();
 }
 
 function setAuthMode(mode) {
@@ -700,11 +735,11 @@ function setResetFormEnabled(on) {
 }
 
 /**
- * Токен из адреса вида #/reset?token=… Читаем строку вручную, а не через
+ * Токен из адреса вида /reset?token=… Читаем строку вручную, а не через
  * URLSearchParams: тот превращает «+» в пробел и испортил бы токен в base64.
  */
 function readResetToken() {
-    const match = /[?&]token=([^&]*)/.exec(location.hash);
+    const match = /[?&]token=([^&]*)/.exec(location.search);
 
     if (!match) {
         return '';
@@ -752,7 +787,7 @@ async function saveNewPassword() {
         // Ссылка одноразовая: повторная отправка той же формы получит 400,
         // поэтому экран закрывается, а сообщение переезжает на форму входа.
         resetToken = '';
-        location.hash = '';
+        history.replaceState(null, '', '/');
         showAuth();
         setNotice('auth-alert', 'Пароль изменён, войдите с новым паролем', 'ok');
     } catch (error) {
@@ -767,7 +802,9 @@ async function saveNewPassword() {
 function backToAuth(event) {
     event.preventDefault();
 
-    location.hash = '';
+    // replaceState: экран восстановления не должен оставаться в истории —
+    // иначе «назад» вернуло бы человека на форму с уже погашенным токеном.
+    history.replaceState(null, '', '/');
     showAuth();
 }
 
@@ -875,10 +912,12 @@ async function enterApp() {
     elements.updates.hidden = true;
     elements.app.hidden = false;
 
-    if (!location.hash) {
-        location.hash = `#/${routes[0].path}`;
-        // Присвоение хеша вызовет hashchange, но только если он действительно изменился.
-        if (!location.hash) await route();
+    if (!pagePath()) {
+        // Первый вход: открываем тренировку и заводим адрес. pushState, а не
+        // replaceState — «назад» должно возвращать на главную с кнопками,
+        // откуда человек и вошёл.
+        history.pushState(null, '', `/${routes[0].path}`);
+        await route();
         return;
     }
 
@@ -930,7 +969,7 @@ function renderUserChip() {
 
         <!-- Ссылка на «Что нового» вместе с версией: в мини-аппе этого блока нет
              (там подвал скрыт), и вход на страницу остаётся в профиле. -->
-        <a class="foot-link" href="#/updates">
+        <a class="foot-link" href="/updates">
             ${icon('refresh', 'icon--sm')} <span>Что нового</span>
             <span class="foot-link__version" id="app-version"></span>
         </a>`;
@@ -992,7 +1031,7 @@ function renderNav() {
         const count = route.badge ? state.badges[route.badge] ?? 0 : 0;
 
         return `
-            <a class="nav-item ${route.path === currentPath ? 'is-active' : ''}" href="#/${route.path}">
+            <a class="nav-item ${route.path === currentPath ? 'is-active' : ''}" href="/${route.path}">
                 ${icon(route.icon)}
                 <span>${esc(route.title)}</span>
                 ${count > 0 ? `<span class="badge badge--brand">${count}</span>` : ''}
@@ -1000,74 +1039,161 @@ function renderNav() {
     }).join('');
 }
 
-/* ── Роутер ─────────────────────────────────────────────────────────────── */
+/* ── Адрес и роутер ─────────────────────────────────────────────────────── */
 
-function navigate(path) {
-    const target = `#/${path}`;
+/**
+ * Путь текущей страницы без ведущей и завершающей косой черты.
+ *
+ * Пустая строка — корень сайта. Завершающая косая черта отбрасывается, чтобы
+ * /friends/ и /friends считались одним разделом: иначе половина внешних ссылок
+ * вела бы на «неизвестный» раздел.
+ */
+function pagePath() {
+    return location.pathname.replace(/^\/+/, '').replace(/\/+$/, '');
+}
 
-    if (location.hash === target) {
-        route();
+/**
+ * Приводит старый адрес с хешем к обычному пути.
+ *
+ * Хеш-роутинг заменён, но письма со ссылкой на сброс пароля уже разосланы,
+ * а закладки у людей остались. Адрес переписывается один раз и молча:
+ * сообщать о смене формата незачем — человек ничего не сделал неправильно.
+ */
+function adoptLegacyHash() {
+    const hash = location.hash;
+
+    if (!hash.startsWith('#/')) {
         return;
     }
 
-    location.hash = target;
+    // '#/reset?token=…' → '/reset?token=…': строка после решётки уже содержит
+    // и путь, и строку запроса, разбирать её на части не нужно.
+    history.replaceState(null, '', hash.slice(1));
 }
 
-function isResetHash() {
-    return location.hash.startsWith('#/reset');
+/**
+ * Относится ли адрес к самому приложению (а не к публичным страницам).
+ *
+ * Разделяются они не для красоты: клик по внутренней ссылке приложение
+ * перехватывает и показывает раздел без перезагрузки, а /decks должен
+ * открывать браузер — иначе страница каталога подменилась бы интерфейсом.
+ */
+function isAppAddress(pathname) {
+    const first = pathname.replace(/^\/+/, '').split('/')[0];
+
+    return first === ''
+        || first === 'forgot'
+        || first === 'reset'
+        || first === 'updates'
+        || routes.some((route) => route.path === first);
 }
 
-function isForgotHash() {
-    return location.hash.startsWith('#/forgot');
+/**
+ * Клик по внутренней ссылке: переход без перезагрузки документа.
+ *
+ * Без этого каждая смена раздела заново скачивала бы и разбирала приложение,
+ * а сеанс, прокрутка и открытая сессия тренировки терялись бы.
+ */
+function interceptLink(event) {
+    // Средняя кнопка и модификаторы означают «открыть в новой вкладке».
+    // Перехватывать их — значит ломать привычное поведение браузера.
+    if (event.defaultPrevented || event.button !== 0) {
+        return;
+    }
+
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+    }
+
+    const link = event.target.closest?.('a[href]');
+
+    if (!link || link.target || link.hasAttribute('download')) {
+        return;
+    }
+
+    const url = new URL(link.href, location.origin);
+
+    if (url.origin !== location.origin || !isAppAddress(url.pathname)) {
+        return;
+    }
+
+    event.preventDefault();
+    navigate(url.pathname + url.search);
 }
 
-function isUpdatesHash() {
-    return location.hash.startsWith('#/updates');
+function navigate(path) {
+    const target = `/${String(path).replace(/^\/+/, '')}`;
+
+    if (location.pathname + location.search === target) {
+        void route();
+        return;
+    }
+
+    history.pushState(null, '', target);
+    void route();
+}
+
+function isResetPath() {
+    return pagePath() === 'reset';
+}
+
+function isForgotPath() {
+    return pagePath() === 'forgot';
+}
+
+function isUpdatesPath() {
+    return pagePath() === 'updates';
 }
 
 async function route() {
+    const path = pagePath();
+
+    // Корень сайта — главная с кнопками, а не первый раздел: сюда ведёт логотип.
+    if (!path) {
+        showHome();
+        return;
+    }
+
     // Экраны восстановления пароля живут вне оболочки, но приходят обычным
-    // хешем: их нужно перехватить до выбора страницы, иначе роутер отрисует
+    // адресом: их нужно перехватить до выбора страницы, иначе роутер отрисует
     // «Тренировку» вместо формы сброса.
-    if (isResetHash()) {
+    if (isResetPath()) {
         showReset();
         return;
     }
 
-    if (isForgotHash()) {
+    if (isForgotPath()) {
         showForgot();
         return;
     }
 
     // История обновлений открывается с главной и без входа, и с уже
     // авторизованным профилем: главная — отдельный экран, оболочка приложения
-    // в этот момент ещё скрыта. Внутри приложения этот же хеш обрабатывается
+    // в этот момент ещё скрыта. Внутри приложения этот же адрес обрабатывается
     // обычным роутером ниже.
-    if (isUpdatesHash() && elements.app.hidden) {
+    if (isUpdatesPath() && elements.app.hidden) {
         await showPublicUpdates();
         return;
     }
 
-    // Пока оболочка скрыта, страницы не отрисовываются: иначе смена хеша на
+    // Пока оболочка скрыта, страницы не отрисовываются: иначе смена адреса на
     // экране входа втихую готовила бы страницу в скрытом контейнере.
     if (elements.app.hidden) {
-        // Возврат с публичной истории обновлений по кнопке «назад» в браузере.
-        if (!location.hash || location.hash === '#/') {
-            showHome();
-        }
         return;
     }
 
-    const requested = location.hash.replace(/^#\/?/, '').split('?')[0];
-
     // Точное совпадение проверяется первым, затем — раздел с переменной частью
-    // адреса: #/user/ivan открывает профиль игрока, а не «Тренировку».
-    const matched = routes.find((route) => route.path === requested)
-        ?? routes.find((route) => requested.startsWith(`${route.path}/`))
+    // адреса: /user/ivan открывает профиль игрока, а не «Тренировку».
+    const matched = routes.find((route) => route.path === path)
+        ?? routes.find((route) => path.startsWith(`${route.path}/`))
         ?? routes[0];
 
     currentPath = matched.nav ?? matched.path;
     elements.title.textContent = matched.title;
+
+    // Заголовок вкладки был один на всё приложение, и история браузера
+    // показывала десяток одинаковых записей «EnglishTrainer».
+    document.title = `${matched.title} — EnglishTrainer`;
 
     stopSession();
     renderNav();
@@ -1081,4 +1207,34 @@ async function route() {
     // Страница могла обновить счётчики (например, принять заявку в друзья),
     // поэтому меню перерисовывается ещё раз, уже после её работы.
     renderNav();
+
+    trackPageView(path);
+}
+
+// ── Учёт просмотров ──────────────────────────────────────────────────────
+
+/**
+ * Сообщает счётчику о смене раздела.
+ *
+ * Приложение меняет адрес без перезагрузки, поэтому Метрика сама о переходе
+ * не узнает и посчитала бы все разделы одной страницей. Функция приходит
+ * из /seo.js; если счётчик не настроен, её просто нет — тогда учёт молча
+ * отключается, а не ломает навигацию.
+ */
+function trackPageView(path) {
+    const url = `/${path}`;
+
+    // Первый показ уже посчитан самим счётчиком при загрузке страницы:
+    // второй хит за тот же адрес удвоил бы просмотры.
+    if (countedPath === null) {
+        countedPath = url;
+        return;
+    }
+
+    if (url === countedPath || typeof window.__seoHit !== 'function') {
+        return;
+    }
+
+    window.__seoHit(url, document.title, `${location.origin}${countedPath}`);
+    countedPath = url;
 }

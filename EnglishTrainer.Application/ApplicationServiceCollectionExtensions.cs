@@ -26,6 +26,9 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<LeaderboardService>();
         services.AddScoped<PasswordResetService>();
         services.AddScoped<ProfileService>();
+        // Публичный каталог обслуживает страницы без входа — их читают
+        // поисковые роботы, и им же отвечает sitemap.xml.
+        services.AddScoped<PublicCatalogService>();
         services.AddScoped<StudySessionService>();
         services.AddScoped<StatsService>();
         services.AddScoped<TelegramService>();

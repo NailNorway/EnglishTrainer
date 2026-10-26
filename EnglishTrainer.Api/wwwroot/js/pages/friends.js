@@ -179,7 +179,7 @@ function friendRow(friend) {
  * это уже его итоги, а не подпись к кнопке.
  */
 function personLink(person, content) {
-    return `<a class="person" href="#/user/${encodeURIComponent(person.username)}">${content}</a>`;
+    return `<a class="person" href="/user/${encodeURIComponent(person.username)}">${content}</a>`;
 }
 
 function outgoingRow(request) {
