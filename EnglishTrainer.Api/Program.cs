@@ -1,7 +1,10 @@
+using EnglishTrainer.Api.Ads;
 using EnglishTrainer.Api.Authentication;
 using EnglishTrainer.Api.Cli;
 using EnglishTrainer.Api.Endpoints;
 using EnglishTrainer.Api.ErrorHandling;
+using EnglishTrainer.Api.Legal;
+using EnglishTrainer.Api.Seo;
 using EnglishTrainer.Api.Startup;
 using EnglishTrainer.Application;
 using EnglishTrainer.Application.Media;
@@ -12,6 +15,9 @@ using EnglishTrainer.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.WebEncoders;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -92,6 +98,30 @@ if (trustProxy)
 // ── Документация ─────────────────────────────────────────────────────────────
 builder.Services.AddOpenApi();
 
+// ── Публичные страницы и поиск ───────────────────────────────────────────────
+// Razor Pages, а не минимальные API: страницы колод отдаются готовым HTML,
+// потому что поисковику нужен текст в ответе, а не оболочка, которую рисует
+// скрипт. Приложение при этом остаётся на месте — оно живёт на своих адресах.
+builder.Services.AddRazorPages();
+
+// Кодировщик HTML без экранирования кириллицы.
+//
+// По умолчанию Razor превращает каждый русский символ в &#x416;: это
+// корректный HTML, но страница вырастает вдвое, а в исходнике вместо текста
+// видна каша — и человек, и часть инструментов проверки читают её плохо.
+// Разрешённая таблица символов оставляет «Ё», тире и кавычки как есть.
+builder.Services.Configure<WebEncoderOptions>(options =>
+{
+    options.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.All);
+});
+
+// Настройки видимости в поиске: адрес сайта, счётчик, файлы подтверждения прав.
+builder.Services.Configure<SeoOptions>(builder.Configuration.GetSection(SeoOptions.SectionName));
+
+// Реквизиты для юридических страниц и рекламный блок каталога.
+builder.Services.Configure<LegalOptions>(builder.Configuration.GetSection(LegalOptions.SectionName));
+builder.Services.Configure<AdsOptions>(builder.Configuration.GetSection(AdsOptions.SectionName));
+
 var app = builder.Build();
 
 // Режим обслуживания: `dotnet run --project EnglishTrainer.Api -- migrate|seed`.
@@ -154,6 +184,16 @@ app.MapFriendEndpoints();
 app.MapStudyEndpoints();
 app.MapStatsEndpoints();
 app.MapVersionEndpoints();
+
+// Публичные страницы каталога (/decks и /decks/{slug}) и служебные адреса
+// для роботов: robots.txt, sitemap.xml, загрузчик счётчика.
+app.MapRazorPages();
+app.MapSeoEndpoints(builder.Configuration);
+
+// Адреса самого приложения. Раньше они жили в хеше и до сервера не доходили;
+// теперь это обычные пути, и открыть /study напрямую (или обновить страницу)
+// можно только если сервер отдаёт по ним оболочку.
+app.MapSpaEndpoints();
 
 app.MapGet("/health", () => Results.Ok(new HealthResponse("ok", DateTime.UtcNow)))
     .WithTags("Служебное")

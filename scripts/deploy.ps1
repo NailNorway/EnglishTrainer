@@ -335,7 +335,7 @@ else {
 }
 
 # Порт HTTPS тоже задаётся при каждом запуске: его меняют, когда 443 занят
-# чем-то другим (VPN, панель). Порт 80 при этом остаётся за Caddy — через него
+# другой службой. Порт 80 при этом остаётся за Caddy — через него
 # Let's Encrypt подтверждает владение доменом.
 #
 # Значение проверяется явно: пустая строка в .env выглядит безобидно, но
@@ -434,11 +434,16 @@ $tarball = Join-Path $env:TEMP 'english-trainer-deploy.tar.gz'
 # Исключения: результаты сборки, репозиторий, локальные данные и секреты.
 # appsettings.Local.json не нужен на сервере: там настройки приходят
 # переменными окружения, а этот файл содержит токен бота и пароль базы.
+#
+# Caddyfile и docker-compose.prod.yml не перезаписываются: на сервере в них есть
+# домен приложения и отдельный маршрут для WebSocket-профиля, которых нет в
+# локальной копии. Архив с кодом не должен затирать эту серверную настройку.
 $excludeArgs = @(
     '--exclude=bin', '--exclude=obj', '--exclude=*/bin/*', '--exclude=*/obj/*',
     '--exclude=.git', '--exclude=.vs', '--exclude=.pgdata', '--exclude=.dotnet-home',
     '--exclude=tests', '--exclude=uploads',
-    '--exclude=appsettings.Local.json', '--exclude=EnglishTrainer.Api/wwwroot/avatars'
+    '--exclude=appsettings.Local.json', '--exclude=EnglishTrainer.Api/wwwroot/avatars',
+    '--exclude=deploy/Caddyfile', '--exclude=docker-compose.prod.yml'
 )
 
 & tar -czf $tarball @excludeArgs -C $root .

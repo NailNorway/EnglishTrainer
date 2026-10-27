@@ -1,0 +1,45 @@
+@page "/decks"
+@model EnglishTrainer.Api.Pages.DecksModel
+
+<h1>Английские слова по темам</h1>
+
+<p class="lead">
+    @Model.Decks.Count тематических колод: бытовые сценарии, работа, документы,
+    здоровье, учёба. В каждой колоде — слова с переводом, транскрипцией и примером
+    употребления. Списки открыты без регистрации: читайте и выбирайте, что учить.
+</p>
+
+<ul class="deck-grid">
+    @foreach (var deck in Model.Decks)
+    {
+        <li>
+            <a class="deck-card" href="/decks/@deck.Slug">
+                <span class="deck-card__title">@deck.Title</span>
+                @if (!string.IsNullOrEmpty(deck.Description))
+                {
+                    <span class="deck-card__description">@deck.Description</span>
+                }
+                <span class="deck-card__count">@RussianPlural.Words(deck.WordCount)</span>
+            </a>
+        </li>
+    }
+</ul>
+
+@* Реклама — только на публичных страницах каталога, не в приложении. *@
+<partial name="_AdSlot" />
+
+<section class="note">
+    <h2>Как это работает</h2>
+    <p>
+        Выбираете тему и тренируетесь короткими сессиями: сначала повторение того,
+        что пора вспомнить, потом новые слова. Ответ проверяет сервер, а интервалы
+        пересчитывает алгоритм — поэтому слова возвращаются не по случайному
+        расписанию, а тогда, когда начинают забываться.
+    </p>
+    <p>
+        Транскрипция в списках — британская. Примеры написаны под бытовые ситуации,
+        а не взяты из словаря: «deposit» в теме про аренду жилья запоминается
+        лучше академической фразы.
+    </p>
+    <p><a class="button" href="/">Открыть тренажёр</a></p>
+</section>

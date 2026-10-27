@@ -1,0 +1,87 @@
+@page "/decks/{slug}"
+@model EnglishTrainer.Api.Pages.DeckModel
+
+<nav class="crumbs" aria-label="Навигационная цепочка">
+    <a href="/">Главная</a>
+    <span aria-hidden="true">›</span>
+    <a href="/decks">Слова по темам</a>
+    <span aria-hidden="true">›</span>
+    <span>@Model.Deck.Title</span>
+</nav>
+
+<header class="deck-head">
+    <h1>@Model.Deck.Title: английские слова с переводом</h1>
+
+    <p class="lead">
+        @if (!string.IsNullOrEmpty(Model.Deck.Description))
+        {
+            <text>@Model.Deck.Description. </text>
+        }
+        @RussianPlural.Words(Model.Deck.Words.Count) с транскрипцией, переводом
+        и примером употребления.
+    </p>
+
+    <p class="deck-head__actions">
+        <a class="button" href="/">Тренировать эти слова</a>
+        <span class="muted">Регистрация не нужна, чтобы прочитать список.</span>
+    </p>
+</header>
+
+<ol class="word-list">
+    @foreach (var word in Model.Deck.Words)
+    {
+        <li class="word">
+            <div class="word__head">
+                <b class="word__lemma">@word.Lemma</b>
+                <span class="word__pos">@word.PartOfSpeech</span>
+                @if (!string.IsNullOrEmpty(word.Transcription))
+                {
+                    <span class="word__ipa">@word.Transcription</span>
+                }
+                @if (!string.IsNullOrEmpty(word.Level))
+                {
+                    <span class="word__level">@word.Level</span>
+                }
+            </div>
+
+            <div class="word__translation">@word.Translation</div>
+
+            @if (!string.IsNullOrEmpty(word.ExampleEn))
+            {
+                <div class="word__example">
+                    <span class="word__example-en">@word.ExampleEn</span>
+                    @if (!string.IsNullOrEmpty(word.ExampleRu))
+                    {
+                        <span class="word__example-ru">@word.ExampleRu</span>
+                    }
+                </div>
+            }
+        </li>
+    }
+</ol>
+
+@* Реклама — только на публичных страницах каталога, не в приложении. *@
+<partial name="_AdSlot" />
+
+<section class="cta">
+    <h2>Эти слова можно выучить</h2>
+    <p>
+        В тренажёре эта же колода превращается в короткие сессии: слово показывается
+        до того, как вы его забудете, ответ проверяется на сервере, а прогресс
+        считается по каждому слову отдельно.
+    </p>
+    <p><a class="button" href="/">Начать тренировку</a></p>
+</section>
+
+<section class="other-decks">
+    <h2>Другие темы</h2>
+    <ul class="deck-links">
+        @foreach (var other in Model.OtherDecks)
+        {
+            <li>
+                <a href="/decks/@other.Slug">@other.Title</a>
+                <span class="muted">@RussianPlural.Words(other.WordCount)</span>
+            </li>
+        }
+    </ul>
+</section>

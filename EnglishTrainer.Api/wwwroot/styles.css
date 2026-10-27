@@ -1534,6 +1534,27 @@ body.is-telegram .topbar__theme { display: none; }
     padding-bottom: 2px;
 }
 
+/* Ссылка на каталог тем — главный путь к бесплатному контенту с главной.
+   Оформлена заметнее, чем ссылка на историю обновлений: это не служебная
+   подпись, а вход в раздел, ради которого человек и пришёл из поиска. */
+.home__catalog {
+    justify-self: center;
+    margin-bottom: 14px;
+    padding: 9px 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.home__catalog:hover {
+    border-color: var(--brand);
+    text-decoration: none;
+}
+
 .home__updates:hover {
     color: var(--brand);
     border-color: var(--brand);

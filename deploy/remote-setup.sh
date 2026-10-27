@@ -57,8 +57,8 @@ if command -v ss >/dev/null 2>&1; then
                 echo "  только в виде DNS-проверки. Этот порт придётся освободить."
             else
                 echo "  Кто именно слушает:  ss -lntp | grep ':$port '"
-                echo "  Если это VPN или панель, которую трогать нельзя, задайте в .env"
-                echo "  другой порт:  HTTPS_PORT=8443   (адрес станет https://домен:8443)"
+                echo "  Если порт занят службой, которую трогать нельзя, задайте в .env"
+                echo "  другой порт:  HTTPS_PORT=9443   (адрес станет https://домен:9443)"
             fi
         fi
     done
@@ -78,8 +78,26 @@ if ! docker compose -f docker-compose.prod.yml run --rm --no-deps -T \
 fi
 
 # ── Сборка и запуск ──────────────────────────────────────────────────────────
-echo "== Сборка и запуск (первый раз это несколько минут)"
-docker compose -f docker-compose.prod.yml up -d --build
+#
+# Сборка отделена от запуска и идёт последовательно — это не перестраховка.
+# На сервере с 1 ГБ памяти без swap три параллельных `dotnet publish`
+# (api, bot, migrate) выели всю память: машина ушла в свопинг, перестала
+# отвечать на SSH и на HTTP, а обновление оборвалось на середине.
+# COMPOSE_PARALLEL_LIMIT=1 добавляет пару минут и снимает этот сценарий.
+swaptotal=$(awk '/^SwapTotal:/{print $2}' /proc/meminfo 2>/dev/null || echo 0)
+
+if [ "${swaptotal:-0}" -eq 0 ]; then
+    echo "ВНИМАНИЕ: swap не включён, а сборке .NET нужно около гигабайта сверху."
+    echo "  Если памяти мало, сборка может уронить сервер в свопинг. Включить swap:"
+    echo "    fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile"
+    echo "    echo '/swapfile none swap sw 0 0' >> /etc/fstab"
+fi
+
+echo "== Сборка образов (последовательно)"
+COMPOSE_PARALLEL_LIMIT=1 docker compose -f docker-compose.prod.yml build
+
+echo "== Запуск"
+docker compose -f docker-compose.prod.yml up -d
 
 # ── Проверка, что прокси поднялся ────────────────────────────────────────────
 # Без этого шага неверный порт или занятый адрес выглядят как «сайт не

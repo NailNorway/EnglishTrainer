@@ -1,0 +1,462 @@
+/*
+ * Оформление публичных страниц: каталог тем и страница колоды.
+ *
+ * Отдельный файл, а не styles.css приложения. У них разные задачи: styles.css
+ * описывает оболочку с боковым меню и рассчитан на вошедшего пользователя,
+ * а здесь — обычная текстовая страница для человека из поиска. Общие стили
+ * пришлось бы усложнять ветками «а на лендинге иначе», и обе задачи стали бы
+ * хуже. Совпадают только палитра и шрифт — они и вынесены в переменные.
+ */
+
+:root {
+    --bg: #f5f6fb;
+    --surface: #ffffff;
+    --text: #1b2233;
+    --muted: #6b7a90;
+    --border: #e2e6f0;
+    --brand: #4f46e5;
+    --brand-dark: #4038c9;
+    --brand-soft: #eef0ff;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 8px 24px rgb(16 24 40 / 6%);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #0f1420;
+        --surface: #171d2c;
+        --text: #e8ecf6;
+        --muted: #8b98b0;
+        --border: #262f45;
+        --brand: #7c74f0;
+        --brand-dark: #6a61e8;
+        --brand-soft: #232a44;
+        --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 24%);
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+    /* Кириллица в системных шрифтах крупнее латиницы — при 16px строка
+       читается свободно, а таблица слов не расползается. */
+}
+
+a {
+    color: var(--brand);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--brand-dark);
+    text-decoration: underline;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+/* ── Шапка и подвал ────────────────────────────────────────────────────── */
+
+.site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 18px 20px;
+}
+
+.site-header__brand {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+}
+
+.site-header__brand span {
+    color: var(--brand);
+}
+
+.site-header__brand:hover {
+    text-decoration: none;
+}
+
+.site-header__nav a {
+    font-size: 15px;
+}
+
+.site-footer {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 20px 48px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.site-footer__links {
+    margin: 0 0 6px;
+}
+
+.site-footer__links span {
+    margin: 0 6px;
+    color: var(--border);
+}
+
+/* ── Содержимое ────────────────────────────────────────────────────────── */
+
+.page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 8px 20px 24px;
+}
+
+.page h1 {
+    margin: 8px 0 12px;
+    font-size: clamp(26px, 4.4vw, 38px);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+.page h2 {
+    margin: 32px 0 10px;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+}
+
+.lead {
+    margin: 0 0 24px;
+    max-width: 70ch;
+    font-size: 17px;
+    color: var(--muted);
+}
+
+/* ── Кнопка ────────────────────────────────────────────────────────────── */
+
+.button {
+    display: inline-block;
+    padding: 11px 20px;
+    border-radius: 10px;
+    background: var(--brand);
+    color: #fff;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.button:hover {
+    background: var(--brand-dark);
+    color: #fff;
+    text-decoration: none;
+}
+
+/* ── Каталог тем ───────────────────────────────────────────────────────── */
+
+.deck-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.deck-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    height: 100%;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow);
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.deck-card:hover {
+    border-color: var(--brand);
+    color: var(--text);
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.deck-card__title {
+    font-weight: 650;
+    font-size: 17px;
+}
+
+.deck-card__description {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.deck-card__count {
+    margin-top: auto;
+    padding-top: 8px;
+    color: var(--brand);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* ── Хлебные крошки ────────────────────────────────────────────────────── */
+
+.crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin: 8px 0 4px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.crumbs a {
+    color: var(--muted);
+}
+
+.crumbs span[aria-hidden] {
+    color: var(--border);
+}
+
+/* ── Шапка колоды ──────────────────────────────────────────────────────── */
+
+.deck-head__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin: 0 0 28px;
+    font-size: 14px;
+}
+
+/* ── Список слов ───────────────────────────────────────────────────────── */
+
+.word-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 10px;
+}
+
+.word {
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.word__head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.word__lemma {
+    font-size: 18px;
+    letter-spacing: -0.01em;
+}
+
+.word__pos {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.word__ipa {
+    color: var(--muted);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+}
+
+.word__level {
+    margin-left: auto;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.word__translation {
+    margin-top: 2px;
+    font-size: 16px;
+}
+
+.word__example {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 8px;
+    padding-left: 10px;
+    border-left: 2px solid var(--border);
+    font-size: 14px;
+    color: var(--muted);
+}
+
+.word__example-en {
+    color: var(--text);
+}
+
+/* ── Блоки внизу страницы ──────────────────────────────────────────────── */
+
+.cta,
+.note {
+    margin: 32px 0 0;
+    padding: 20px;
+    border-radius: var(--radius);
+    background: var(--brand-soft);
+}
+
+.cta h2,
+.note h2 {
+    margin-top: 0;
+}
+
+.cta p,
+.note p {
+    max-width: 70ch;
+}
+
+.other-decks h2 {
+    margin-top: 36px;
+}
+
+.deck-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 6px 20px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 15px;
+}
+
+.deck-links li {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.deck-links li .muted {
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+/* ── Рекламный блок ────────────────────────────────────────────────────── */
+
+/*
+ * Высота зарезервирована заранее. Без неё баннер появляется уже после
+ * отрисовки и сдвигает текст вниз — это тот самый сдвиг макета, за который
+ * страница теряет оценку в отчёте о скорости и раздражает человека, который
+ * уже начал читать список слов.
+ */
+.ad-slot {
+    margin: 28px 0 8px;
+    padding-top: 12px;
+    min-height: 250px;
+    border-top: 1px solid var(--border);
+}
+
+.ad-slot__label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* ── Юридические страницы ──────────────────────────────────────────────── */
+
+.legal__meta {
+    margin: -6px 0 20px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.legal-table {
+    width: 100%;
+    margin: 12px 0 24px;
+    border-collapse: collapse;
+    font-size: 15px;
+}
+
+.legal-table th,
+.legal-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+}
+
+.legal-table th {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.page ul {
+    max-width: 70ch;
+    padding-left: 22px;
+}
+
+.page li {
+    margin-bottom: 6px;
+}
+
+@media (max-width: 560px) {
+    .site-header {
+        padding: 14px 16px;
+    }
+
+    .page {
+        padding: 4px 16px 16px;
+    }
+
+    .site-footer {
+        padding: 24px 16px 36px;
+    }
+
+    /* Таблица данных на узком экране превращается в карточки: три колонки
+       в 360 пикселей читаются только с горизонтальной прокруткой. */
+    .legal-table thead {
+        display: none;
+    }
+
+    .legal-table tr {
+        display: block;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .legal-table td {
+        display: block;
+        padding: 2px 0;
+        border: none;
+    }
+
+    .legal-table td:first-child {
+        font-weight: 650;
+    }
+}

@@ -9,6 +9,26 @@
     <link rel="stylesheet" href="/styles.css">
 
     <!--
+        Адрес главной задан здесь, а не приходит из настроек: файл статический,
+        и подставлять в него значение из окружения нечем. Публичные страницы
+        каталога (/decks) собираются на сервере и берут адрес из конфигурации.
+    -->
+    <link rel="canonical" href="https://englishrainer.site/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="EnglishTrainer">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:title" content="EnglishTrainer — тренажёр словарного запаса">
+    <meta property="og:description" content="Короткие сессии английских слов, повторение с интервалами, колоды, серия дней и Telegram-мини-апп.">
+    <meta property="og:url" content="https://englishrainer.site/">
+
+    <!--
+        Счётчик Метрики подключается отдельным файлом: его номер приходит
+        из настроек (Seo:YandexMetrikaId), а этот документ отдаётся статикой.
+        Если счётчик не настроен, файл пуст — лишний скрипт не грузится.
+    -->
+    <script src="/seo.js" defer></script>
+
+    <!--
         Тема выставляется до первой отрисовки. Без этого скрипта тёмная палитра
         применялась бы только после загрузки модулей, и страница успевала мигнуть
         белым — на тёмном экране телефона это заметно и выглядит как дефект.
@@ -38,6 +58,25 @@
     <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
+
+<!--
+    Текст для тех, у кого не выполняется JavaScript: часть роботов, режим
+    экономии трафика, старые устройства. Без него такой посетитель видит
+    пустой документ, а поисковик — страницу без содержания.
+-->
+<noscript>
+    <div style="max-width: 640px; margin: 48px auto; padding: 0 20px; font-family: system-ui, sans-serif; line-height: 1.6">
+        <h1 style="font-size: 24px; line-height: 1.25">EnglishTrainer — тренажёр английских слов</h1>
+        <p>
+            Короткие ежедневные сессии, повторение с интервалами и тематические колоды.
+            Ответ проверяет сервер, интервалы пересчитывает алгоритм.
+        </p>
+        <p>
+            <a href="/decks">Английские слова по темам</a> — списки с переводом,
+            транскрипцией и примерами, открытые без регистрации.
+        </p>
+    </div>
+</noscript>
 
 <!--
     Спрайт иконок: пути описаны один раз в разметке, а используются
@@ -127,7 +166,17 @@
             </article>
         </section>
 
-        <a class="home__updates" href="#/updates">История обновлений</a>
+        <!--
+            Ссылка на каталог тем стоит здесь, а не только в подвале страниц
+            каталога: с главной раньше вели лишь кнопки входа, и человек из
+            поиска упирался в форму. Каталог — единственный раздел, который
+            открыт без регистрации, поэтому путь к нему должен быть с первого
+            экрана. Это же требование есть у модерации рекламных сетей:
+            основной контент обязан быть доступен из навигации с главной.
+        -->
+        <a class="home__catalog" href="/decks">Английские слова по темам — 18 колод</a>
+
+        <a class="home__updates" href="/updates">История обновлений</a>
     </main>
 </div>
 
@@ -192,11 +241,22 @@
                 <button type="button" class="btn btn--ghost btn--wide" id="register-toggle">Регистрация</button>
             </div>
 
-            <p class="hint" id="forgot-hint"><a href="#/forgot" id="forgot-link">Забыли пароль?</a></p>
+            <p class="hint" id="forgot-hint"><a href="/forgot" id="forgot-link">Забыли пароль?</a></p>
             <p class="hint">Часовой пояс определится автоматически по браузеру.</p>
+
+            <!--
+                Согласие на обработку данных показывается прямо на форме, а не
+                только в отдельном документе: по 152-ФЗ согласие должно быть
+                конкретным и осознанным, и человек должен видеть, что принимает,
+                до отправки формы. Ссылка ведёт на страницу-политику.
+            -->
+            <p class="hint">
+                Продолжая, вы принимаете
+                <a href="/privacy">политику обработки персональных данных</a>.
+            </p>
         </form>
 
-        <p class="hint home-back"><a href="#" id="auth-home">← На главную</a></p>
+        <p class="hint home-back"><a href="/" id="auth-home">← На главную</a></p>
     </div>
 </div>
 
@@ -242,14 +302,15 @@
                 <button type="submit" class="btn btn--primary btn--wide" id="forgot-submit">Отправить ссылку</button>
             </div>
 
-            <p class="hint"><a href="#/" id="forgot-back">Назад ко входу</a></p>
+            <p class="hint"><a href="/" id="forgot-back">Назад ко входу</a></p>
         </form>
     </div>
 </div>
 
 <!-- ── Новый пароль по ссылке из письма ──────────────────────────────────── -->
-<!-- Адрес экрана — #/reset?token=…: токен читается из хеша, поэтому ссылку
-     можно открыть в любом браузере без настройки маршрутов на сервере. -->
+<!-- Адрес экрана — /reset?token=…: токен читается из строки запроса, поэтому
+     ссылку можно открыть в любом браузере. Старые ссылки с хешем (#/reset)
+     продолжают работать — интерфейс переписывает их в новый вид при загрузке. -->
 <div class="auth-screen" id="screen-reset" hidden>
     <div class="auth-card">
         <div class="brand brand--lg">English<span>Trainer</span></div>
@@ -283,7 +344,7 @@
                 <button type="submit" class="btn btn--primary btn--wide" id="reset-submit">Сохранить пароль</button>
             </div>
 
-            <p class="hint"><a href="#/" id="reset-back">Назад ко входу</a></p>
+            <p class="hint"><a href="/" id="reset-back">Назад ко входу</a></p>
         </form>
     </div>
 </div>
@@ -332,7 +393,7 @@
             </div>
         </form>
 
-        <p class="hint"><a href="#/" id="telegram-retry">Я уже привязал — попробовать снова</a></p>
+        <p class="hint"><a href="/" id="telegram-retry">Я уже привязал — попробовать снова</a></p>
     </div>
 </div>
 
@@ -352,7 +413,7 @@
             <!-- «Что нового» стоит в шапке, а не только в профиле: страницу ищут
                  глазами, а не в настройках. Подпись прячется на узких экранах,
                  номер версии остаётся — по нему видно, обновилось ли приложение. -->
-            <a class="topbar__updates" id="updates-link" href="#/updates" title="Что нового">
+            <a class="topbar__updates" id="updates-link" href="/updates" title="Что нового">
                 <span class="topbar__updates-text">Что нового</span>
                 <span class="topbar__updates-version" id="updates-version"></span>
             </a>
